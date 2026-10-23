@@ -1,0 +1,53 @@
+# Tema: el verde de Vue.js y el blanco son la identidad general (barra lateral, color
+# de marca); los componentes (tarjetas, tablas, gráficos) usan neutros y una paleta
+# propia sin verde. El rojo queda para alertas y acciones destructivas.
+# Colores de gráficos validados para daltonismo: azul, naranja, violeta, rosa.
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+baseRadius = "0.6rem"
+buttonRadius = "0.6rem"
+showWidgetBorder = true
+
+[theme.light]
+primaryColor = "#42b883"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f4f6f9"
+textColor = "#213547"
+linkColor = "#3d6fd9"
+borderColor = "#dde3ea"
+dataframeHeaderBackgroundColor = "#eef2f7"
+greenColor = "#2f9e6e"
+redColor = "#e5484d"
+chartCategoricalColors = ["#3d6fd9", "#c96a1b", "#8e5bd9", "#d6457a"]
+# Magnitud (mapa de calor): un solo tono azul, de claro a oscuro.
+chartSequentialColors = ["#eef3fc", "#d6e2f8", "#bccff3", "#a0bbee", "#84a6e8", "#6890e1", "#4d7ad8", "#3d6fd9", "#2d55a8", "#1f3c78"]
+
+[theme.light.sidebar]
+backgroundColor = "#e6f5ed"
+secondaryBackgroundColor = "#ffffff"
+borderColor = "#c6e6d5"
+
+[theme.dark]
+primaryColor = "#42b883"
+backgroundColor = "#1b1b1f"
+secondaryBackgroundColor = "#24262c"
+textColor = "#e3e3dc"
+linkColor = "#5b8def"
+borderColor = "#33363d"
+dataframeHeaderBackgroundColor = "#262a31"
+greenColor = "#42d392"
+redColor = "#f2555a"
+chartCategoricalColors = ["#5b8def", "#cf7a26", "#9a6be8", "#d9557f"]
+# En oscuro la escala va del fondo hacia el azul claro.
+chartSequentialColors = ["#1f2430", "#222c40", "#263552", "#2b3f66", "#31497a", "#3a568f", "#4565a8", "#5b8def", "#7da5f2", "#a3c0f6"]
+
+[theme.dark.sidebar]
+backgroundColor = "#161618"
+secondaryBackgroundColor = "#1f2a24"
+borderColor = "#2f3b35"
