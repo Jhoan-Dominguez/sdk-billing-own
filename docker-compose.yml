@@ -1,0 +1,115 @@
+# Uso: cp .env.example .env  (y cambia las contraseñas)  →  docker compose up -d --build
+#   App:      http://localhost:${APP_PORT}
+#   Keycloak: http://localhost:${KEYCLOAK_PORT}  (consola admin con KEYCLOAK_ADMIN_*)
+#   pgAdmin:  http://localhost:${PGADMIN_PORT}
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-compras}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: ${POSTGRES_DB:-compras}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./infra/docker/postgres/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    # Imagen propia: Keycloak 26.8 + tema de login + realm (infra/docker/keycloak/Dockerfile).
+    # Tras cambiar el tema o el README: docker compose up -d --build keycloak
+    build:
+      context: .
+      dockerfile: infra/docker/keycloak/Dockerfile
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-compras}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-kcadmin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?define KEYCLOAK_ADMIN_PASSWORD en .env}
+      # El navegador usa localhost:KEYCLOAK_PORT; la app habla con keycloak:8080 dentro
+      # de la red de Docker. BACKCHANNEL_DYNAMIC hace que el token/jwks se sirvan con
+      # el host interno sin cambiar el issuer de los tokens.
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8180}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+      # Variables usadas por realm-compras.json al importarlo (solo la primera vez).
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:?define KEYCLOAK_CLIENT_SECRET en .env}
+      KEYCLOAK_ADMIN_API_SECRET: ${KEYCLOAK_ADMIN_API_SECRET:?define KEYCLOAK_ADMIN_API_SECRET en .env}
+      COMPRAS_ADMIN_PASSWORD: ${COMPRAS_ADMIN_PASSWORD:?define COMPRAS_ADMIN_PASSWORD en .env}
+      COMPRAS_CLIENTE_PASSWORD: ${COMPRAS_CLIENTE_PASSWORD:?define COMPRAS_CLIENTE_PASSWORD en .env}
+      APP_PORT: ${APP_PORT:-8502}
+    ports:
+      - "${KEYCLOAK_PORT:-8180}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      # La imagen no trae curl: se consulta el puerto de gestión con /dev/tcp de bash.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      dockerfile: infra/docker/app/Dockerfile
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-compras}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-compras}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      AUTH_REDIRECT_URI: http://localhost:${APP_PORT:-8502}/oauth2callback
+      AUTH_COOKIE_SECRET: ${AUTH_COOKIE_SECRET:?define AUTH_COOKIE_SECRET en .env}
+      KEYCLOAK_CLIENT_ID: compras-app
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      KEYCLOAK_PUBLIC_URL: http://localhost:${KEYCLOAK_PORT:-8180}
+      KEYCLOAK_ADMIN_API_SECRET: ${KEYCLOAK_ADMIN_API_SECRET}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      COMPRAS_EXTRACTOR: ${COMPRAS_EXTRACTOR:-}
+      COMPRAS_MONEDA: ${COMPRAS_MONEDA:-USD}
+    volumes:
+      - uploads:/app/data/uploads
+    ports:
+      - "${APP_PORT:-8502}:8501"
+    depends_on:
+      db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+  pgadmin:
+    image: dpage/pgadmin4:9
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@compras.example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?define PGADMIN_PASSWORD en .env}
+      PGADMIN_CONFIG_SERVER_MODE: "True"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./infra/docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
+  uploads:
+  pgadmin_data:
