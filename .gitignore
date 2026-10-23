@@ -3,3 +3,16 @@ __pycache__/
 .pytest_cache/
 data/
 .idea/
+.ruff_cache/
+.env
+.streamlit/secrets.toml
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+backend.hcl
+crash.log
+*.egg-info/
+build/
