@@ -1,0 +1,12 @@
+/* Estilos que el tema de .streamlit/config.toml no cubre.
+   El rojo queda reservado para acciones destructivas: los botones con clave
+   confirm-delete* (Streamlit añade la clase .st-key-<clave> a su contenedor). */
+[class*="st-key-confirm-delete"] button {
+    background-color: #e5484d;
+    border-color: #e5484d;
+    color: #ffffff;
+}
+[class*="st-key-confirm-delete"] button:hover {
+    background-color: #c9383d;
+    border-color: #c9383d;
+}
