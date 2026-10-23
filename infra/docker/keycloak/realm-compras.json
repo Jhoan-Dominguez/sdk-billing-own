@@ -1,0 +1,224 @@
+{
+  "realm": "compras",
+  "displayName": "Registro de compras",
+  "enabled": true,
+  "loginTheme": "compras",
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "loginWithEmailAllowed": true,
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "passwordPolicy": "length(8) and notUsername",
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "es"
+  ],
+  "defaultLocale": "es",
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Administrador de la aplicación de compras"
+      },
+      {
+        "name": "cliente",
+        "description": "Cliente de la aplicación de compras"
+      },
+      {
+        "name": "offline_access",
+        "description": "${role_offline-access}"
+      },
+      {
+        "name": "uma_authorization",
+        "description": "${role_uma_authorization}"
+      },
+      {
+        "name": "default-roles-compras",
+        "description": "Roles que recibe toda cuenta nueva",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "cliente",
+            "offline_access",
+            "uma_authorization"
+          ]
+        }
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "compras-app",
+      "name": "Registro de compras (Streamlit)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${KEYCLOAK_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:8501/oauth2callback",
+        "http://localhost:${APP_PORT}/oauth2callback",
+        "http://localhost:8501/configuracion",
+        "http://localhost:${APP_PORT}/configuracion"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "+"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "compras-admin-api",
+      "name": "API de administración de la app (cuenta de servicio)",
+      "description": "La app gestiona con ella el perfil, 2FA, sesiones y borrado del propio usuario.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${KEYCLOAK_ADMIN_API_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "id": "8f1c2a3e-0000-4000-8000-000000000001",
+      "username": "admin@compras.example.com",
+      "enabled": true,
+      "email": "admin@compras.example.com",
+      "emailVerified": true,
+      "firstName": "Administrador",
+      "lastName": "Compras",
+      "realmRoles": [
+        "admin"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${COMPRAS_ADMIN_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "8f1c2a3e-0000-4000-8000-000000000101",
+      "username": "cliente@compras.example.com",
+      "enabled": true,
+      "email": "cliente@compras.example.com",
+      "emailVerified": true,
+      "firstName": "Carlos",
+      "lastName": "Mendoza",
+      "realmRoles": [
+        "cliente"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${COMPRAS_CLIENTE_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "8f1c2a3e-0000-4000-8000-000000000102",
+      "username": "maria.lopez@compras.example.com",
+      "enabled": true,
+      "email": "maria.lopez@compras.example.com",
+      "emailVerified": true,
+      "firstName": "María",
+      "lastName": "López",
+      "realmRoles": [
+        "cliente"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${COMPRAS_CLIENTE_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "8f1c2a3e-0000-4000-8000-000000000103",
+      "username": "juan.perez@compras.example.com",
+      "enabled": true,
+      "email": "juan.perez@compras.example.com",
+      "emailVerified": true,
+      "firstName": "Juan",
+      "lastName": "Pérez",
+      "realmRoles": [
+        "cliente"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${COMPRAS_CLIENTE_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "8f1c2a3e-0000-4000-8000-000000000104",
+      "username": "sofia.ramirez@compras.example.com",
+      "enabled": true,
+      "email": "sofia.ramirez@compras.example.com",
+      "emailVerified": true,
+      "firstName": "Sofía",
+      "lastName": "Ramírez",
+      "realmRoles": [
+        "cliente"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${COMPRAS_CLIENTE_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "service-account-compras-admin-api",
+      "enabled": true,
+      "serviceAccountClientId": "compras-admin-api",
+      "clientRoles": {
+        "realm-management": [
+          "view-users",
+          "manage-users"
+        ]
+      }
+    }
+  ],
+  "registrationEmailAsUsername": true,
+  "duplicateEmailsAllowed": false,
+  "verifyEmail": false,
+  "defaultRole": {
+    "name": "default-roles-compras",
+    "composite": true
+  }
+}
