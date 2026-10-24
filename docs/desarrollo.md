@@ -43,6 +43,7 @@ volumen de Docker: los borradores creados por el worker de Docker no tienen su a
 | `make install`, `secrets`, `dev`, `worker` | Desarrollo local |
 | `make sync-once` | Una sincronización de buzones en el contenedor `worker` |
 | `make migrate` | `alembic upgrade head` |
+| `make test` | Pruebas (ver «Pruebas» abajo) |
 | `make lint`, `format` | pre-commit (ruff y comprobaciones) / formateo |
 | `make tf-validate` | Valida Terraform |
 
@@ -70,8 +71,7 @@ Comprobaciones rápidas:
 
 ```bash
 # Plantillas de bancos contra sus ejemplos
-.venv/bin/python -c "from billing.infrastructure.extraction import bank_rules as b; \
-print(all(b.match(p.example, 'x@' + t.senders[0]) for t in b.TEMPLATES for p in t.patterns))"
+.venv/bin/pytest tests/test_extraction.py -k bank_pattern
 # Esquema de la base frente a tables.py
 .venv/bin/alembic check
 ```
@@ -91,7 +91,26 @@ print(all(b.match(p.example, 'x@' + t.senders[0]) for t in b.TEMPLATES for p in 
 
 ## Pruebas
 
-Las pruebas automáticas (`tests/`) son de la estructura anterior al refactor y están
-pendientes de reescribir contra `src/billing`. La verificación de esta versión se hizo con
-scripts de punta a punta contra los servicios reales (Keycloak, PostgreSQL, SQLite, memoria,
-Mailpit, GreenMail y Ollama) y con `streamlit.testing.v1.AppTest` sobre todas las páginas.
+```bash
+make test                                              # toda la suite (.venv/bin/pytest)
+.venv/bin/pytest tests/test_application.py -k drafts   # un subconjunto
+.venv/bin/pytest "tests/test_application.py::test_import_confirm_and_delete[sqlite]"
+```
+
+No necesitan Docker: `tests/conftest.py` fija `BILLING_PERSISTENCE=memory`, el mailer de
+consola y el proveedor LLM `local` antes de importar `billing`.
+
+| Archivo | Qué cubre |
+|---|---|
+| `test_domain.py` | Roles y `Viewer`, tipos de archivo, periodos, `BankNotification`, avisos de coherencia |
+| `test_extraction.py` | Regex de facturas, extractor LLM con `FakeLLMClient` y su respaldo, plantillas de bancos, `LLMBankParser` |
+| `test_application.py` | Casos de uso (compras, borradores, categorías, usuarios) contra memoria **y** SQLite con las migraciones |
+| `test_migrations.py` | La migración `0006` traduce y revierte los valores guardados |
+| `test_ui.py` | Páginas con `streamlit.testing.v1.AppTest`: aislamiento por dueño y permisos por rol |
+
+El fixture `backend` se parametriza con `memory` y `sqlite`. El mapeo imperativo de
+SQLAlchemy es global al proceso y, una vez activo, el adaptador en memoria deja de asignar
+ids; por eso `conftest.py` ordena las pruebas de memoria antes que las de SQLite.
+
+Lo que depende de servicios reales (Keycloak, PostgreSQL, SMTP, IMAP, proveedores LLM) se
+verifica a mano con el stack (tabla de arriba).

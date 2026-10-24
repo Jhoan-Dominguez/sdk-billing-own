@@ -99,6 +99,7 @@ Sin ninguno, la app usa solo reglas: lee PDFs digitales, correos y las alertas d
 | `make install` | Crea `.venv` con dependencias de desarrollo y hooks de pre-commit |
 | `make dev` / `make worker` | App en local (http://localhost:8501) y worker de buzones en local |
 | `make migrate` | Aplica las migraciones de base de datos |
+| `make test` | Pruebas automáticas (sin Docker) |
 | `make lint`, `make format` | Hooks de pre-commit y formato con ruff |
 | `make tf-validate` | Valida la configuración de Terraform |
 
@@ -125,6 +126,7 @@ src/billing/
 └── settings.py        Variables de entorno
 infra/                 Docker (app, Keycloak con tema y realm, Postgres, pgAdmin) y Terraform (AWS)
 scripts/               Secretos de login, datos de prueba y alertas bancarias de prueba
+tests/                 Pruebas automáticas (pytest, sin Docker)
 docs/                  Documentación técnica detallada
 ```
 

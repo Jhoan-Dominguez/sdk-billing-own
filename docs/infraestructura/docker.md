@@ -6,7 +6,7 @@
 
 | Servicio | Imagen | Puerto en el host | Función |
 |---|---|---|---|
-| `db` | `postgres:17-alpine` | `DB_PORT` (5433) | Bases `billing` (app), `keycloak` y `compras_test` |
+| `db` | `postgres:17-alpine` | `DB_PORT` (5433) | Bases `billing` (app) y `keycloak` |
 | `keycloak` | propia (`infra/docker/keycloak/Dockerfile`, Keycloak 26.8) | `KEYCLOAK_PORT` (8180) | Identidad: login, registro, 2FA, correos |
 | `app` | propia (`infra/docker/app/Dockerfile`) | `APP_PORT` (8502) | App web Streamlit |
 | `worker` | la misma que `app` | — | `python -m billing.worker`: sincroniza buzones IMAP |
@@ -68,8 +68,8 @@ Separación de nombres de host: el navegador usa `localhost:8180` y la app `keyc
 
 ## Base de datos
 
-`infra/docker/postgres/init-databases.sql` (solo al crear el volumen) crea `keycloak` y
-`compras_test`; `POSTGRES_DB` (`billing`) la crea la imagen. pgAdmin tiene el servidor
+`infra/docker/postgres/init-databases.sql` (solo al crear el volumen) crea `keycloak`;
+`POSTGRES_DB` (`billing`) la crea la imagen. pgAdmin tiene el servidor
 registrado en `infra/docker/pgadmin/servers.json`.
 
 ## Operación habitual

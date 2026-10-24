@@ -1,100 +1,97 @@
-"""Tests de las páginas de Streamlit con AppTest (sin navegador)."""
-
 from datetime import date
 from pathlib import Path
 
+import pytest
 from streamlit.testing.v1 import AppTest
 
-from app.models import Purchase
-from app.services import create_purchase, store_upload
-from tests.conftest import make_pdf
+import billing
+from billing import bootstrap
+from billing.application import imports
+from billing.application import purchases as purchase_service
+from billing.domain.auth import ADMIN, CUSTOMER
+from billing.domain.models import User
+from billing.infrastructure.extraction.extractors import RegexExtractor
+from billing.infrastructure.persistence.memory.backend import MemoryBackend
+from tests.conftest import ADMIN_ID, ADMIN_VIEWER, ANA_ID, ANA_VIEWER, BETO_ID, make_pdf
 
-ROOT = Path(__file__).resolve().parent.parent
+PAGES_DIR = Path(billing.__file__).parent / "presentation" / "streamlit" / "pages"
 
-
-def run_page(path: str) -> AppTest:
-    at = AppTest.from_file(str(ROOT / path), default_timeout=30)
-    at.run()
-    assert not at.exception, at.exception
-    return at
-
-
-def test_entrypoint_renders(db):
-    run_page("streamlit_app.py")
+MONTH = date.today().replace(day=5)
 
 
-def test_new_purchase_form_saves(db):
-    at = run_page("app_pages/nueva_compra.py")
-    at.text_input[0].set_value("Panadería Luna")
-    at.number_input[2].set_value(7.5)  # Total
-    at.button[0].click().run()
-    assert not at.exception, at.exception
+@pytest.fixture
+def app_backend(monkeypatch, storage):
+    """La app (bootstrap) usa un backend en memoria con compras de Ana y Beto."""
+    backend = MemoryBackend()
+    backend.init_schema()
+    with backend.unit_of_work() as uow:
+        uow.users.add(User(id=ADMIN_ID, username="admin", name="Admin", role=ADMIN))
+        uow.users.add(User(id=ANA_ID, username="ana", name="Ana", role=CUSTOMER))
+        uow.users.add(User(id=BETO_ID, username="beto", name="Beto", role=CUSTOMER))
+        uow.commit()
+        for owner, vendor, total in ((ANA_ID, "Panadería Ana", "12.50"), (BETO_ID, "Ferretería Beto", "80")):
+            values = {"purchase_date": MONTH, "vendor": vendor, "total": total, "currency": "USD"}
+            purchase_service.create(uow, values, [], owner_id=owner)
+    monkeypatch.setattr(bootstrap, "persistence", lambda: backend)
+    monkeypatch.setattr(bootstrap, "file_storage", lambda: storage)
+    return backend
+
+
+def run_page(name: str, viewer=None) -> AppTest:
+    at = AppTest.from_file(str(PAGES_DIR / f"{name}.py"), default_timeout=30)
+    if viewer is not None:
+        at.session_state["viewer"] = viewer
+    return at.run()
+
+
+def page_text(at: AppTest) -> str:
+    texts = [e.value for e in (*at.markdown, *at.caption, *at.info, *at.error, *at.title)]
+    texts += [df.value.to_csv() for df in at.dataframe]
+    return "\n".join(str(t) for t in texts)
+
+
+def test_page_without_viewer_shows_nothing(app_backend):
+    at = run_page("summary_table")
+    assert not at.exception
+    assert "Sesión no válida" in at.error[0].value
+    assert "Panadería" not in page_text(at)
+
+
+def test_customer_only_sees_own_purchases(app_backend):
+    at = run_page("summary_table", ANA_VIEWER)
+    assert not at.exception
+    text = page_text(at)
+    assert "Panadería Ana" in text
+    assert "Ferretería Beto" not in text
+
+
+def test_admin_sees_everyone(app_backend):
+    at = run_page("summary_table", ADMIN_VIEWER)
+    assert not at.exception
+    text = page_text(at)
+    assert "Panadería Ana" in text and "Ferretería Beto" in text
+
+
+def test_comparison_page_for_admin(app_backend):
+    at = run_page("comparison", ADMIN_VIEWER)
+    assert not at.exception
+    assert at.title[0].value == "Comparativa de clientes"
     assert not at.error
-    p = db.query(Purchase).one()
-    assert (p.vendor, float(p.total), p.purchase_date) == ("Panadería Luna", 7.5, date.today())
 
 
-def test_new_purchase_shows_validation_error(db):
-    at = run_page("app_pages/nueva_compra.py")
-    at.button[0].click().run()
-    assert "Comercio: obligatorio" in at.error[0].value
-    assert db.query(Purchase).count() == 0
+def test_comparison_page_rejects_customer(app_backend):
+    at = run_page("comparison", ANA_VIEWER)
+    assert "No tienes permiso" in at.error[0].value
 
 
-def test_summary_lists_month_purchases(db):
-    create_purchase(db, {"purchase_date": date.today(), "vendor": "Mercado Azul", "total": 20}, [])
-    at = run_page("app_pages/resumen.py")
-    table = at.dataframe[0].value
-    assert list(table["Comercio"]) == ["Mercado Azul"]
-
-
-def test_import_page_prefills_draft(db):
-    store_upload(db, "f.pdf", "application/pdf", make_pdf(["Libreria Sur", "Total 30.00"]))
-    at = run_page("app_pages/importar.py")
-    assert at.text_input[0].value == "Libreria Sur"
-    submit = next(b for b in at.button if b.label == "Confirmar compra")
-    submit.click().run()
-    assert not at.exception, at.exception
-    p = db.query(Purchase).one()
-    assert p.source == "pdf" and float(p.total) == 30.0
-
-
-def select_first_row(monkeypatch, at: AppTest) -> None:
-    """AppTest no permite seleccionar filas de st.dataframe; se inyecta el estado
-    que enviaría el navegador en cada rerun."""
-    import json
-
-    from streamlit.proto.WidgetStates_pb2 import WidgetState
-    from streamlit.testing.v1.element_tree import ElementTree
-
-    widget_id = at.dataframe[0].proto.id
-    original = ElementTree.get_widget_states
-
-    def with_selection(self):
-        states = original(self)
-        if all(w.id != widget_id for w in states.widgets):
-            ws = WidgetState(id=widget_id)
-            ws.string_value = json.dumps({"selection": {"rows": [0], "columns": [], "cells": []}})
-            states.widgets.append(ws)
-        return states
-
-    monkeypatch.setattr(ElementTree, "get_widget_states", with_selection)
-    at.run()
-
-
-def test_summary_edit_and_delete(db, monkeypatch):
-    create_purchase(db, {"purchase_date": date.today(), "vendor": "Mercado Azul", "total": 20}, [])
-    at = run_page("app_pages/resumen.py")
-    select_first_row(monkeypatch, at)
-    assert "Mercado Azul · USD 20.00" in [s.value for s in at.subheader]
-
-    next(b for b in at.button if b.label == "Editar").click().run()
-    next(t for t in at.text_input if t.label == "Comercio *").set_value("Mercado Azul Centro")
-    next(b for b in at.button if b.label == "Guardar compra").click().run()
-    assert not at.exception, at.exception
-    db.expire_all()
-    assert db.query(Purchase).one().vendor == "Mercado Azul Centro"
-
-    next(b for b in at.button if b.label == "Sí, eliminar").click().run()
-    assert not at.exception, at.exception
-    assert db.query(Purchase).count() == 0
+def test_import_page_hides_other_users_drafts(app_backend, storage):
+    with app_backend.unit_of_work() as uow:
+        raw = make_pdf(["Libreria Beto", "Total 9.99"])
+        imports.store_upload(uow, storage, RegexExtractor(), "beto.pdf", None, raw, owner_id=BETO_ID)
+        imports.store_upload(uow, storage, RegexExtractor(), "ana.pdf", None, raw, owner_id=ANA_ID)
+    at = run_page("imports", ANA_VIEWER)
+    assert not at.exception
+    text = page_text(at) + str([s.options for s in at.selectbox])
+    assert "ana.pdf" in text and "beto.pdf" not in text
+    at = run_page("imports", ADMIN_VIEWER)  # tampoco el admin: los borradores son de su dueño
+    assert "beto.pdf" not in page_text(at) + str([s.options for s in at.selectbox])

@@ -7,7 +7,7 @@ SERVICE ?=
 
 .DEFAULT_GOAL := help
 .PHONY: help env build up down restart logs ps seed seed-reset keycloak-reimport bank-samples mail \
-        install secrets dev worker sync-once migrate lint format tf-validate
+        install secrets dev worker sync-once migrate test lint format tf-validate
 
 help: ## Muestra esta ayuda
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -76,6 +76,9 @@ sync-once: ## Una sola sincronización de todos los buzones (en el contenedor de
 
 migrate: ## Aplica las migraciones pendientes a la base de datos
 	.venv/bin/alembic upgrade head
+
+test: ## Ejecuta las pruebas (sin Docker: persistencia en memoria y SQLite)
+	$(PYTHON) -m pytest
 
 lint: ## Pasa los hooks de pre-commit (ruff y comprobaciones) a todo el repo
 	.venv/bin/pre-commit run --all-files

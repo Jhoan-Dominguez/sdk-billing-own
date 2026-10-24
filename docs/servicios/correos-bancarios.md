@@ -85,11 +85,11 @@ BankTemplate(
 )
 ```
 
-Comprobación rápida de todas las plantillas con sus ejemplos:
+`tests/test_extraction.py::test_every_bank_pattern_matches_its_example` comprueba que cada
+patrón reconoce su ejemplo:
 
 ```bash
-.venv/bin/python -c "from billing.infrastructure.extraction import bank_rules as b; \
-print(all(b.match(p.example, 'x@' + t.senders[0]) for t in b.TEMPLATES for p in t.patterns))"
+.venv/bin/pytest tests/test_extraction.py -k bank_pattern
 ```
 
 ## Buzones IMAP
