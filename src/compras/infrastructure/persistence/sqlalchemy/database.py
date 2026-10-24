@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from sqlalchemy import Engine, create_engine, inspect
+from sqlalchemy import Engine, create_engine, event, inspect
 from sqlalchemy.orm import Session, sessionmaker
 
 from compras.infrastructure.persistence.sqlalchemy.orm import start_mappers
@@ -11,8 +11,18 @@ MIGRATIONS_DIR = Path(__file__).with_name("migrations")
 
 
 def make_engine(url: str) -> Engine:
+    """Engine para cualquier URL que soporte SQLAlchemy (postgresql+psycopg, sqlite, mysql+pymysql...)."""
     # pre_ping descarta conexiones cortadas (p. ej. tras reiniciar el contenedor de Postgres).
-    return create_engine(url, pool_pre_ping=True)
+    engine = create_engine(url, pool_pre_ping=True)
+    if engine.dialect.name == "sqlite":
+        # SQLite no aplica las claves foráneas (ni sus ON DELETE CASCADE) si no se pide.
+        @event.listens_for(engine, "connect")
+        def _enable_foreign_keys(dbapi_connection, _record) -> None:
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+
+    return engine
 
 
 def make_session_factory(engine: Engine) -> sessionmaker[Session]:
