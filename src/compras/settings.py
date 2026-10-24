@@ -12,6 +12,7 @@ from dotenv import find_dotenv, load_dotenv
 load_dotenv(find_dotenv(usecwd=True))
 
 env = os.environ.get
+# Las variables vacías en .env (VAR=) cuentan como no definidas: `env("X") or "defecto"`.
 
 # --- Archivos -----------------------------------------------------------------
 
@@ -48,17 +49,53 @@ KEYCLOAK_REALM = env("KEYCLOAK_REALM", "compras")
 KEYCLOAK_PUBLIC_URL = env("KEYCLOAK_PUBLIC_URL", f"http://localhost:{env('KEYCLOAK_PORT', '8180')}")
 KEYCLOAK_INTERNAL_URL = env("KEYCLOAK_INTERNAL_URL", KEYCLOAK_PUBLIC_URL)
 KEYCLOAK_CLIENT_ID = env("KEYCLOAK_CLIENT_ID", "compras-app")
+# Secreto del cliente OIDC: lo usa también la reautenticación de acciones sensibles.
+KEYCLOAK_CLIENT_SECRET = env("KEYCLOAK_CLIENT_SECRET", "")
 # Cuenta de servicio con la que la app gestiona la cuenta del propio usuario.
 KEYCLOAK_ADMIN_API_CLIENT_ID = env("KEYCLOAK_ADMIN_API_CLIENT_ID", "compras-admin-api")
 KEYCLOAK_ADMIN_API_SECRET = env("KEYCLOAK_ADMIN_API_SECRET", "")
 # Raíz pública de la app: a ella vuelve Keycloak tras cambiar contraseña o activar 2FA.
 APP_PUBLIC_URL = env("AUTH_REDIRECT_URI", "http://localhost:8501/oauth2callback").removesuffix("/oauth2callback")
 
-# --- Extracción de facturas ---------------------------------------------------
+# --- Correo saliente -----------------------------------------------------------
 
-# "claude" usa la API de Anthropic para leer imágenes/PDFs/emails; "local" solo
-# extrae texto de PDFs/emails y aplica expresiones regulares (sin red, menos preciso).
-EXTRACTOR = env("COMPRAS_EXTRACTOR") or ("claude" if env("ANTHROPIC_API_KEY") else "local")
-CLAUDE_MODEL = env("COMPRAS_CLAUDE_MODEL", "claude-opus-5-5")
+# Adaptador (compras/bootstrap.py): "smtp" o "console" (solo escribe en el log).
+MAILER_BACKEND = env("COMPRAS_MAILER") or "smtp"
+# Fuera de Docker se usa el SMTP de Mailpit publicado en el host (MAILPIT_SMTP_PORT).
+SMTP_HOST = env("SMTP_HOST") or "localhost"
+SMTP_PORT = int(env("SMTP_PORT") or env("MAILPIT_SMTP_PORT", "1025"))
+SMTP_FROM = env("SMTP_FROM") or "no-reply@compras.example.com"
+SMTP_USER = env("SMTP_USER", "")
+SMTP_PASSWORD = env("SMTP_PASSWORD", "")
+SMTP_STARTTLS = (env("SMTP_STARTTLS") or "false").lower() == "true"
+SMTP_SSL = (env("SMTP_SSL") or "false").lower() == "true"
+
+# --- Secretos guardados ---------------------------------------------------------
+
+# Clave Fernet con la que se cifran las contraseñas de los buzones IMAP.
+SECRET_KEY = env("COMPRAS_SECRET_KEY", "")
+
+# --- Agentes LLM ----------------------------------------------------------------
+
+# Proveedor y modelo por defecto de todos los agentes (el admin puede cambiarlos por
+# agente desde la app). Proveedor vacío = el primero con credenciales; "local" = sin LLM.
+LLM_PROVIDER = env("COMPRAS_LLM_PROVIDER", "")
+LLM_MODEL = env("COMPRAS_LLM_MODEL", "")
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", "")
+OPENAI_API_KEY = env("OPENAI_API_KEY", "")
+OPENAI_BASE_URL = env("OPENAI_BASE_URL", "")
+GEMINI_API_KEY = env("GEMINI_API_KEY", "")
+# Ollama expone una API compatible con OpenAI en /v1.
+OLLAMA_BASE_URL = env("OLLAMA_BASE_URL") or "http://localhost:11434/v1"
+# Razonamiento de los modelos de Ollama: none | low | medium | high (vacío = el del modelo).
+OLLAMA_REASONING_EFFORT = env("OLLAMA_REASONING_EFFORT", "none")
+LLM_TIMEOUT_SECONDS = float(env("COMPRAS_LLM_TIMEOUT") or "120")
+
+# --- Notificaciones bancarias -----------------------------------------------------
+
+# Cada cuántos segundos sincroniza el worker los buzones IMAP.
+MAIL_SYNC_INTERVAL = int(env("COMPRAS_MAIL_SYNC_INTERVAL") or "120")
+# Correos que se leen como máximo por buzón en cada sincronización.
+MAIL_SYNC_BATCH = int(env("COMPRAS_MAIL_SYNC_BATCH") or "50")
 
 DEFAULT_CURRENCY = env("COMPRAS_MONEDA", "USD")
