@@ -138,7 +138,8 @@ def delete_account(uow: UnitOfWork, storage: FileStorage, account: AccountAdmin,
     """Borra la cuenta en el proveedor de identidad y todo lo del usuario en la app.
 
     Primero la identidad: si falla, no se pierde nada. Las categorías personales caen
-    con el usuario (borrado en cascada del almacenamiento).
+    con el usuario (borrado en cascada del almacenamiento); buzones y confirmaciones
+    se borran explícitamente para no depender de las cascadas del motor.
     """
     account.delete()
     for purchase in uow.purchases.by_owner(user.id):
@@ -146,5 +147,8 @@ def delete_account(uow: UnitOfWork, storage: FileStorage, account: AccountAdmin,
     for draft in imports.drafts(uow, owner_id=user.id):
         imports.discard_draft(uow, storage, draft)
     remove_avatar(uow, storage, user)
+    for mailbox in uow.mailboxes.for_owner(user.id):
+        uow.mailboxes.delete(mailbox)
+    uow.confirmations.delete_for_user(user.id)
     uow.users.delete(user)
     uow.commit()
