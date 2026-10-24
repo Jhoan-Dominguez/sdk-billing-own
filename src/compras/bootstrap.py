@@ -1,18 +1,22 @@
 """Composition root: el único sitio que conoce las implementaciones concretas.
 
 Elige cada adaptador según compras.settings y lo entrega a quien lo pide (la
-presentación y los scripts). Para integrar otro motor de base de datos, otro
-almacenamiento o proveedor de identidad: implementar el puerto en
-compras/infrastructure/... y añadir aquí la rama que lo construye.
+presentación, el worker y los scripts). Cada servicio tiene su registro en
+infrastructure/<servicio>/: para integrar otro motor de base de datos, proveedor LLM,
+servidor de correo o almacenamiento se implementa el puerto y se registra allí.
 """
 
 from collections.abc import Callable
 from functools import cache
 
 from compras import settings
-from compras.domain.catalog import DEFAULT_CATEGORIES
-from compras.domain.ports.extraction import InvoiceExtractor
-from compras.domain.ports.identity import AccountActions, AccountAdmin
+from compras.application.agents import settings as agent_settings
+from compras.application.agents.base import Agent
+from compras.application.agents.registry import AGENTS, BANK_NOTIFICATION, INVOICE
+from compras.domain.ports.crypto import SecretCipher
+from compras.domain.ports.extraction import BankNotificationParser, InvoiceExtractor
+from compras.domain.ports.identity import AccountActions, AccountAdmin, Reauthenticator
+from compras.domain.ports.mail import MailboxGateway, Mailer
 from compras.domain.ports.repositories import UnitOfWork
 from compras.domain.ports.storage import FileStorage
 
@@ -25,31 +29,27 @@ class ConfigurationError(RuntimeError):
 
 
 @cache
-def _uow_factory() -> Callable[[], UnitOfWork]:
-    if settings.PERSISTENCE_BACKEND == "sql":
-        from compras.infrastructure.persistence.sqlalchemy.database import make_engine, make_session_factory
-        from compras.infrastructure.persistence.sqlalchemy.unit_of_work import SqlAlchemyUnitOfWork
+def persistence():
+    from compras.infrastructure.persistence import registry
 
-        session_factory = make_session_factory(make_engine(settings.DATABASE_URL))
-        return lambda: SqlAlchemyUnitOfWork(session_factory)
-    raise ConfigurationError(f"COMPRAS_PERSISTENCE desconocido: {settings.PERSISTENCE_BACKEND!r}")
+    try:
+        return registry.create(settings.PERSISTENCE_BACKEND, settings)
+    except registry.UnknownBackend as e:
+        raise ConfigurationError(str(e)) from e
 
 
 def unit_of_work() -> UnitOfWork:
     """Una unidad de trabajo nueva: `with bootstrap.unit_of_work() as uow: ...`."""
-    return _uow_factory()()
+    return persistence().unit_of_work()
+
+
+def uow_factory() -> Callable[[], UnitOfWork]:
+    return unit_of_work
 
 
 def init_database() -> None:
-    """Prepara el esquema (migraciones) del adaptador de persistencia elegido."""
-    if settings.PERSISTENCE_BACKEND == "sql":
-        from compras.infrastructure.persistence.sqlalchemy.database import make_engine, migrate
-
-        engine = make_engine(settings.DATABASE_URL)
-        try:
-            migrate(engine)
-        finally:
-            engine.dispose()
+    """Prepara el esquema (migraciones) del motor de persistencia elegido."""
+    persistence().init_schema()
 
 
 # --- Archivos -----------------------------------------------------------------
@@ -64,16 +64,104 @@ def file_storage() -> FileStorage:
     raise ConfigurationError(f"COMPRAS_STORAGE desconocido: {settings.STORAGE_BACKEND!r}")
 
 
-# --- Extracción de facturas ---------------------------------------------------
+# --- Agentes LLM --------------------------------------------------------------
+
+
+def llm_catalog():
+    """Registro de proveedores LLM (infrastructure/llm/registry.py) para la interfaz de
+    administración: qué proveedores hay, si están configurados y sus modelos."""
+    from compras.infrastructure.llm import registry
+
+    return registry
+
+
+def agent_choice(name: str) -> tuple[str, str | None, bool]:
+    """(proveedor, modelo, personalizado) con el que se ejecuta el agente `name`."""
+    from compras.infrastructure.llm import registry
+
+    provider = registry.default_provider()
+    with unit_of_work() as uow:
+        return agent_settings.resolve(uow, name, (provider, registry.default_model(provider)))
+
+
+@cache
+def _llm(provider: str, model: str | None):
+    from compras.infrastructure.llm import registry
+
+    return registry.build(provider, model)
+
+
+def agent(name: str) -> Agent | None:
+    """El agente con el proveedor elegido; None si es `local` o no está disponible."""
+    provider, model, _ = agent_choice(name)
+    try:
+        llm = _llm(provider, model)
+    except Exception:  # SDK no instalado o credenciales inválidas: se usan las reglas
+        return None
+    return Agent(AGENTS[name], llm) if llm is not None else None
+
+
+def agent_for(name: str, provider: str, model: str | None) -> Agent | None:
+    """El agente con un proveedor/modelo concretos (botón "Probar" de la configuración)."""
+    llm = _llm(provider, model)
+    return Agent(AGENTS[name], llm) if llm is not None else None
+
+
+# --- Extracción de facturas y notificaciones bancarias ------------------------
 
 
 @cache
 def invoice_extractor() -> InvoiceExtractor:
-    from compras.infrastructure.extraction.extractors import ClaudeExtractor, RegexExtractor
+    from compras.infrastructure.extraction.extractors import LLMInvoiceExtractor
 
-    if settings.EXTRACTOR == "claude":
-        return ClaudeExtractor(model=settings.CLAUDE_MODEL, categories=DEFAULT_CATEGORIES)
-    return RegexExtractor()
+    return LLMInvoiceExtractor(lambda: agent(INVOICE))
+
+
+@cache
+def bank_parser(*, uploaded: bool = False) -> BankNotificationParser:
+    """`uploaded=True` para correos subidos a mano: el agente solo se usa si el
+    remitente o el texto son de un banco (los buzones ya filtran por remitente)."""
+    from compras.infrastructure.extraction.bank import LLMBankParser
+
+    return LLMBankParser(lambda: agent(BANK_NOTIFICATION), require_bank_sender=uploaded)
+
+
+# --- Correo -------------------------------------------------------------------
+
+
+@cache
+def mailer() -> Mailer:
+    if settings.MAILER_BACKEND == "smtp":
+        from compras.infrastructure.mail.smtp import SmtpMailer
+
+        return SmtpMailer(
+            settings.SMTP_HOST,
+            settings.SMTP_PORT,
+            settings.SMTP_FROM,
+            user=settings.SMTP_USER,
+            password=settings.SMTP_PASSWORD,
+            starttls=settings.SMTP_STARTTLS,
+            use_ssl=settings.SMTP_SSL,
+        )
+    if settings.MAILER_BACKEND == "console":
+        from compras.infrastructure.mail.console import ConsoleMailer
+
+        return ConsoleMailer()
+    raise ConfigurationError(f"COMPRAS_MAILER desconocido: {settings.MAILER_BACKEND!r}")
+
+
+@cache
+def mailbox_gateway() -> MailboxGateway:
+    from compras.infrastructure.mail.imap import ImapGateway
+
+    return ImapGateway()
+
+
+@cache
+def secret_cipher() -> SecretCipher:
+    from compras.infrastructure.crypto.fernet import FernetCipher
+
+    return FernetCipher(settings.SECRET_KEY)
 
 
 # --- Identidad ----------------------------------------------------------------
@@ -110,4 +198,18 @@ def account_actions() -> AccountActions:
 
     return KeycloakActions(
         settings.KEYCLOAK_PUBLIC_URL, settings.KEYCLOAK_REALM, settings.KEYCLOAK_CLIENT_ID, settings.APP_PUBLIC_URL
+    )
+
+
+@cache
+def reauthenticator() -> Reauthenticator:
+    from compras.infrastructure.identity.keycloak import KeycloakReauthenticator
+
+    return KeycloakReauthenticator(
+        settings.KEYCLOAK_PUBLIC_URL,
+        settings.KEYCLOAK_INTERNAL_URL,
+        settings.KEYCLOAK_REALM,
+        settings.KEYCLOAK_CLIENT_ID,
+        settings.KEYCLOAK_CLIENT_SECRET,
+        settings.APP_PUBLIC_URL,
     )
