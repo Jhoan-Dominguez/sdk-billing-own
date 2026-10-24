@@ -2,6 +2,43 @@
 #   App:      http://localhost:${APP_PORT}
 #   Keycloak: http://localhost:${KEYCLOAK_PORT}  (consola admin con KEYCLOAK_ADMIN_*)
 #   pgAdmin:  http://localhost:${PGADMIN_PORT}
+#   Mailpit:  http://localhost:${MAILPIT_PORT}  (correos que envían la app y Keycloak)
+
+# Variables comunes de la app web y del worker (mismo código, mismo .env).
+x-app-env: &app-env
+  POSTGRES_USER: ${POSTGRES_USER:-compras}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  POSTGRES_DB: ${POSTGRES_DB:-compras}
+  POSTGRES_HOST: db
+  POSTGRES_PORT: "5432"
+  COMPRAS_PERSISTENCE: ${COMPRAS_PERSISTENCE:-sql}
+  AUTH_REDIRECT_URI: http://localhost:${APP_PORT:-8502}/oauth2callback
+  KEYCLOAK_CLIENT_ID: compras-app
+  KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+  KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+  KEYCLOAK_PUBLIC_URL: http://localhost:${KEYCLOAK_PORT:-8180}
+  KEYCLOAK_ADMIN_API_SECRET: ${KEYCLOAK_ADMIN_API_SECRET}
+  COMPRAS_SECRET_KEY: ${COMPRAS_SECRET_KEY:?define COMPRAS_SECRET_KEY en .env}
+  COMPRAS_MONEDA: ${COMPRAS_MONEDA:-USD}
+  # Correo saliente (confirmaciones de seguridad).
+  COMPRAS_MAILER: ${COMPRAS_MAILER:-smtp}
+  SMTP_HOST: ${SMTP_HOST:-mailpit}
+  SMTP_PORT: ${SMTP_PORT:-1025}
+  SMTP_FROM: ${SMTP_FROM:-no-reply@compras.example.com}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
+  SMTP_SSL: ${SMTP_SSL:-false}
+  # Agentes LLM (ver docs/servicios/agentes.md).
+  COMPRAS_LLM_PROVIDER: ${COMPRAS_LLM_PROVIDER:-}
+  COMPRAS_LLM_MODEL: ${COMPRAS_LLM_MODEL:-}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
+  # Buzones IMAP de notificaciones bancarias.
+  COMPRAS_MAIL_SYNC_INTERVAL: ${COMPRAS_MAIL_SYNC_INTERVAL:-120}
 
 services:
   db:
@@ -49,11 +86,22 @@ services:
       COMPRAS_ADMIN_PASSWORD: ${COMPRAS_ADMIN_PASSWORD:?define COMPRAS_ADMIN_PASSWORD en .env}
       COMPRAS_CLIENTE_PASSWORD: ${COMPRAS_CLIENTE_PASSWORD:?define COMPRAS_CLIENTE_PASSWORD en .env}
       APP_PORT: ${APP_PORT:-8502}
+      # Servidor SMTP para verificar correos y recuperar contraseñas (realm smtpServer).
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@compras.example.com}
+      SMTP_AUTH: ${SMTP_AUTH:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
+      SMTP_SSL: ${SMTP_SSL:-false}
     ports:
       - "${KEYCLOAK_PORT:-8180}:8080"
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     healthcheck:
       # La imagen no trae curl: se consulta el puerto de gestión con /dev/tcp de bash.
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
@@ -68,21 +116,10 @@ services:
       dockerfile: infra/docker/app/Dockerfile
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-compras}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-compras}
-      POSTGRES_HOST: db
-      POSTGRES_PORT: "5432"
-      AUTH_REDIRECT_URI: http://localhost:${APP_PORT:-8502}/oauth2callback
+      <<: *app-env
       AUTH_COOKIE_SECRET: ${AUTH_COOKIE_SECRET:?define AUTH_COOKIE_SECRET en .env}
-      KEYCLOAK_CLIENT_ID: compras-app
-      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
-      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
-      KEYCLOAK_PUBLIC_URL: http://localhost:${KEYCLOAK_PORT:-8180}
-      KEYCLOAK_ADMIN_API_SECRET: ${KEYCLOAK_ADMIN_API_SECRET}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      COMPRAS_EXTRACTOR: ${COMPRAS_EXTRACTOR:-}
-      COMPRAS_MONEDA: ${COMPRAS_MONEDA:-USD}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Ollama corriendo en el host
     volumes:
       - uploads:/app/data/uploads
     ports:
@@ -92,6 +129,32 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
+
+  # Sincroniza los buzones IMAP de notificaciones bancarias (python -m compras.worker).
+  worker:
+    build:
+      context: .
+      dockerfile: infra/docker/app/Dockerfile
+    restart: unless-stopped
+    command: ["python", "-m", "compras.worker"]
+    environment:
+      <<: *app-env
+      COMPRAS_SKIP_SECRETS: "1"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - uploads:/app/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_healthy  # la app aplica las migraciones al arrancar
+    healthcheck:
+      test: ["CMD", "python", "-c", "import pathlib, sys, time; sys.exit(time.time() - pathlib.Path('/tmp/worker-alive').stat().st_mtime > 600)"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   pgadmin:
     image: dpage/pgadmin4:9
@@ -108,6 +171,34 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  # Correo saliente de desarrollo: captura todo lo que envían la app y Keycloak
+  # (no llega a Internet) y lo muestra en http://localhost:${MAILPIT_PORT}.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+      MP_MAX_MESSAGES: "2000"
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"  # para la app corriendo en local (make dev)
+
+  # Bandeja de entrada de desarrollo (SMTP + IMAP) para las notificaciones bancarias:
+  # scripts/send_bank_samples.py envía correos a su SMTP y el worker los lee por IMAP,
+  # igual que con Gmail u Outlook. Los buzones se crean con GREENMAIL_USERS.
+  greenmail:
+    image: greenmail/standalone:2.1.3
+    restart: unless-stopped
+    environment:
+      GREENMAIL_OPTS: >-
+        -Dgreenmail.setup.test.smtp -Dgreenmail.setup.test.imap
+        -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users.login=email
+        -Dgreenmail.users=${GREENMAIL_USERS:-cliente:Bandeja-Compras-2026@compras.example.com,maria.lopez:Bandeja-Compras-2026@compras.example.com}
+    ports:
+      - "${GREENMAIL_SMTP_PORT:-3025}:3025"
+      - "${GREENMAIL_IMAP_PORT:-3143}:3143"
 
 volumes:
   db_data:
