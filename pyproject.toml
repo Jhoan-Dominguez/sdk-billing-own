@@ -16,13 +16,20 @@ dependencies = [
     "alembic>=1.13",
     "psycopg[binary]>=3.2",
     "pypdf>=5.0",
-    "anthropic>=1.0",
+    "pypdfium2>=4.30",
     "httpx>=0.27",
     "python-dotenv>=1.0",
+    "cryptography>=43",
+    "joserfc>=1.0",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pre-commit>=4", "ruff>=0.17"]
+# SDKs de los proveedores LLM (infrastructure/llm). Ollama usa el de OpenAI.
+anthropic = ["anthropic>=1.0"]
+openai = ["openai>=2.0"]
+gemini = ["google-genai>=1.20"]
+llm = ["anthropic>=1.0", "openai>=2.0", "google-genai>=1.20"]
+dev = ["anthropic>=1.0", "openai>=2.0", "google-genai>=1.20", "pytest>=8", "pre-commit>=4", "ruff>=0.17"]
 
 [project.scripts]
 compras = "compras.__main__:main"
@@ -31,8 +38,9 @@ compras = "compras.__main__:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-# Archivos que no son .py pero viajan con el paquete (migraciones, estilos).
-"*" = ["*.mako", "*.css"]
+# Archivos que no son .py pero viajan con el paquete (migraciones, estilos, prompts
+# de los agentes, plantillas de correo).
+"*" = ["*.mako", "*.css", "*.md", "*.html"]
 
 [tool.ruff]
 line-length = 120
