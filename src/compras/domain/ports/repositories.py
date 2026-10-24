@@ -8,7 +8,15 @@ from collections.abc import Iterable
 from datetime import date
 from typing import Protocol, Self
 
-from compras.domain.models import Attachment, Category, Purchase, User
+from compras.domain.models import (
+    AgentSetting,
+    Attachment,
+    Category,
+    MailboxConnection,
+    Purchase,
+    SecurityConfirmation,
+    User,
+)
 
 
 class UserRepository(Protocol):
@@ -47,6 +55,9 @@ class AttachmentRepository(Protocol):
         ...
 
     def same_content(self, sha256: str, *, owner_id: str, exclude_id: int) -> list[Attachment]: ...
+    def by_message_id(self, message_id: str, *, owner_id: str) -> Attachment | None:
+        """El adjunto de ese usuario importado del correo con ese Message-ID."""
+        ...
 
 
 class CategoryRepository(Protocol):
@@ -66,6 +77,35 @@ class CategoryRepository(Protocol):
         ...
 
 
+class SecurityConfirmationRepository(Protocol):
+    def get(self, confirmation_id: int) -> SecurityConfirmation | None: ...
+    def add(self, confirmation: SecurityConfirmation) -> None: ...
+    def by_token_hash(self, token_hash: str) -> SecurityConfirmation | None: ...
+    def by_state_hash(self, state_hash: str) -> SecurityConfirmation | None: ...
+    def for_user(self, user_id: str) -> list[SecurityConfirmation]:
+        """Todas las del usuario, las más recientes primero."""
+        ...
+
+    def delete_for_user(self, user_id: str) -> None: ...
+
+
+class AgentSettingRepository(Protocol):
+    def get(self, agent: str) -> AgentSetting | None: ...
+    def add(self, setting: AgentSetting) -> None: ...
+    def delete(self, setting: AgentSetting) -> None: ...
+    def list(self) -> list[AgentSetting]: ...
+
+
+class MailboxRepository(Protocol):
+    def get(self, mailbox_id: int) -> MailboxConnection | None: ...
+    def add(self, mailbox: MailboxConnection) -> None: ...
+    def delete(self, mailbox: MailboxConnection) -> None: ...
+    def for_owner(self, owner_id: str) -> list[MailboxConnection]: ...
+    def enabled(self) -> list[MailboxConnection]:
+        """Buzones activos de todos los usuarios (los sincroniza el worker)."""
+        ...
+
+
 class UnitOfWork(Protocol):
     """Transacción sobre todos los repositorios: `with uow: ...; uow.commit()`.
 
@@ -77,6 +117,9 @@ class UnitOfWork(Protocol):
     purchases: PurchaseRepository
     attachments: AttachmentRepository
     categories: CategoryRepository
+    confirmations: SecurityConfirmationRepository
+    agent_settings: AgentSettingRepository
+    mailboxes: MailboxRepository
 
     def __enter__(self) -> Self: ...
     def __exit__(self, *exc) -> None: ...
