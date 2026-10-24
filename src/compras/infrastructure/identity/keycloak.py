@@ -8,6 +8,11 @@
   `compras-admin-api` (roles view-users/manage-users del realm). Puede tocar a
   cualquier usuario del realm, así que bootstrap solo la crea para el usuario
   autenticado.
+- KeycloakReauthenticator: reautenticación para acciones sensibles
+  (`prompt=login`, `max_age=0`): Keycloak vuelve a pedir contraseña y, si el usuario
+  lo tiene, el código 2FA. La app canjea el `code` con el secreto del cliente y
+  valida el ID token (firma con el JWKS del realm, emisor, audiencia, nonce); el
+  claim `amr` (mapper "amr" del cliente) dice si se usó el 2FA.
 """
 
 import time
@@ -15,6 +20,9 @@ from datetime import datetime
 from urllib.parse import urlencode
 
 import httpx
+from joserfc import jwt
+from joserfc.errors import JoseError
+from joserfc.jwk import KeySet
 
 from compras.domain.ports.identity import IdentityError
 
@@ -134,10 +142,17 @@ class KeycloakAccountAdmin:
         otp = [c for c in self._credentials() if c["type"] == "otp"]
         return from_millis(otp[0].get("createdDate")) if otp else False
 
-    def remove_otp(self) -> None:
+    def remove_otp(self, created_before: datetime | None = None) -> int:
+        removed = 0
         for credential in self._credentials():
-            if credential["type"] == "otp":
-                self._request("DELETE", f"/credentials/{credential['id']}")
+            if credential["type"] != "otp":
+                continue
+            created = from_millis(credential.get("createdDate"))
+            if created_before is not None and created is not None and created >= created_before:
+                continue  # el dispositivo nuevo (cambio de 2FA) se conserva
+            self._request("DELETE", f"/credentials/{credential['id']}")
+            removed += 1
+        return removed
 
     def sessions(self) -> list[dict]:
         return [
@@ -154,3 +169,62 @@ class KeycloakAccountAdmin:
 
     def delete(self) -> None:
         self._request("DELETE")
+
+
+class KeycloakReauthenticator:
+    def __init__(
+        self, public_url: str, internal_url: str, realm: str, client_id: str, client_secret: str, app_url: str
+    ) -> None:
+        self._auth_url = f"{public_url}/realms/{realm}/protocol/openid-connect/auth"
+        self._issuer = f"{public_url}/realms/{realm}"
+        self._token_url = f"{internal_url}/realms/{realm}/protocol/openid-connect/token"
+        self._jwks_url = f"{internal_url}/realms/{realm}/protocol/openid-connect/certs"
+        self._client = (client_id, client_secret)
+        self._app_url = app_url
+
+    def start_url(self, *, state: str, nonce: str, login_hint: str | None, return_path: str) -> str:
+        params = {
+            "client_id": self._client[0],
+            "redirect_uri": f"{self._app_url}{return_path}",
+            "response_type": "code",
+            "scope": "openid",
+            "state": state,
+            "nonce": nonce,
+            # Fuerza a pedir de nuevo las credenciales aunque haya sesión SSO.
+            "prompt": "login",
+            "max_age": "0",
+        }
+        if login_hint:
+            params["login_hint"] = login_hint
+        return f"{self._auth_url}?{urlencode(params)}"
+
+    def verify(self, *, code: str, nonce: str, return_path: str) -> dict:
+        client_id, secret = self._client
+        try:
+            response = httpx.post(
+                self._token_url,
+                data={
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "redirect_uri": f"{self._app_url}{return_path}",
+                    "client_id": client_id,
+                    "client_secret": secret,
+                },
+                timeout=10,
+            )
+            if response.status_code != 200:
+                raise IdentityError("Keycloak no aceptó la verificación; vuelve a intentarlo.")
+            keys = KeySet.import_key_set(httpx.get(self._jwks_url, timeout=10).json())
+        except httpx.HTTPError as e:
+            raise IdentityError(f"No se pudo contactar con Keycloak: {e}") from e
+        try:
+            token = jwt.decode(response.json()["id_token"], keys)
+            jwt.JWTClaimsRegistry(
+                iss={"essential": True, "value": self._issuer},
+                aud={"essential": True, "value": client_id},
+                nonce={"essential": True, "value": nonce},
+                sub={"essential": True},
+            ).validate(token.claims)
+        except (JoseError, KeyError, ValueError) as e:
+            raise IdentityError(f"El token de verificación no es válido: {e}") from e
+        return dict(token.claims)
