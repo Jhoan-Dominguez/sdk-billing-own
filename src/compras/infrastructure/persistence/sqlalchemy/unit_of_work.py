@@ -1,9 +1,12 @@
 from sqlalchemy.orm import Session, sessionmaker
 
 from compras.infrastructure.persistence.sqlalchemy.repositories import (
+    SqlAgentSettingRepository,
     SqlAttachmentRepository,
     SqlCategoryRepository,
+    SqlMailboxRepository,
     SqlPurchaseRepository,
+    SqlSecurityConfirmationRepository,
     SqlUserRepository,
 )
 
@@ -20,6 +23,9 @@ class SqlAlchemyUnitOfWork:
         self.purchases = SqlPurchaseRepository(self.session)
         self.attachments = SqlAttachmentRepository(self.session)
         self.categories = SqlCategoryRepository(self.session)
+        self.confirmations = SqlSecurityConfirmationRepository(self.session)
+        self.agent_settings = SqlAgentSettingRepository(self.session)
+        self.mailboxes = SqlMailboxRepository(self.session)
         return self
 
     def __exit__(self, *exc) -> None:

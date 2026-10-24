@@ -3,10 +3,18 @@
 from collections.abc import Iterable
 from datetime import date
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.orm import Session
 
-from compras.domain.models import Attachment, Category, Purchase, User
+from compras.domain.models import (
+    AgentSetting,
+    Attachment,
+    Category,
+    MailboxConnection,
+    Purchase,
+    SecurityConfirmation,
+    User,
+)
 
 
 class _Repository:
@@ -89,6 +97,10 @@ class SqlAttachmentRepository(_Repository):
         )
         return list(self.session.scalars(query))
 
+    def by_message_id(self, message_id: str, *, owner_id: str) -> Attachment | None:
+        query = select(Attachment).where(Attachment.message_id == message_id, Attachment.owner_id == owner_id)
+        return self.session.scalars(query).first()
+
 
 class SqlCategoryRepository(_Repository):
     model = Category
@@ -112,4 +124,46 @@ class SqlCategoryRepository(_Repository):
         query = select(Category.owner_id).where(
             Category.owner_id.is_not(None), func.lower(Category.name) == name.lower()
         )
+        return list(self.session.scalars(query))
+
+
+class SqlSecurityConfirmationRepository(_Repository):
+    model = SecurityConfirmation
+
+    def by_token_hash(self, token_hash: str) -> SecurityConfirmation | None:
+        query = select(SecurityConfirmation).where(SecurityConfirmation.token_hash == token_hash)
+        return self.session.scalars(query).first()
+
+    def by_state_hash(self, state_hash: str) -> SecurityConfirmation | None:
+        query = select(SecurityConfirmation).where(SecurityConfirmation.reauth_state_hash == state_hash)
+        return self.session.scalars(query).first()
+
+    def for_user(self, user_id: str) -> list[SecurityConfirmation]:
+        query = (
+            select(SecurityConfirmation)
+            .where(SecurityConfirmation.user_id == user_id)
+            .order_by(SecurityConfirmation.id.desc())
+        )
+        return list(self.session.scalars(query))
+
+    def delete_for_user(self, user_id: str) -> None:
+        self.session.execute(delete(SecurityConfirmation).where(SecurityConfirmation.user_id == user_id))
+
+
+class SqlAgentSettingRepository(_Repository):
+    model = AgentSetting
+
+    def list(self) -> list[AgentSetting]:
+        return list(self.session.scalars(select(AgentSetting).order_by(AgentSetting.agent)))
+
+
+class SqlMailboxRepository(_Repository):
+    model = MailboxConnection
+
+    def for_owner(self, owner_id: str) -> list[MailboxConnection]:
+        query = select(MailboxConnection).where(MailboxConnection.owner_id == owner_id).order_by(MailboxConnection.id)
+        return list(self.session.scalars(query))
+
+    def enabled(self) -> list[MailboxConnection]:
+        query = select(MailboxConnection).where(MailboxConnection.enabled.is_(True)).order_by(MailboxConnection.id)
         return list(self.session.scalars(query))
