@@ -66,13 +66,13 @@ secrets: env ## Genera .streamlit/secrets.toml (login OIDC) desde .env
 dev: env ## Arranca Postgres, Keycloak y correo en Docker y la app en local (http://localhost:8501)
 	$(COMPOSE) up -d db keycloak mailpit greenmail
 	$(PYTHON) scripts/write_secrets.py
-	$(PYTHON) -m compras
+	$(PYTHON) -m billing
 
 worker: ## Ejecuta en local el worker que sincroniza los buzones IMAP
-	$(PYTHON) -m compras.worker
+	$(PYTHON) -m billing.worker
 
 sync-once: ## Una sola sincronización de todos los buzones (en el contenedor del worker)
-	$(COMPOSE) exec worker python -m compras.worker --once
+	$(COMPOSE) exec worker python -m billing.worker --once
 
 migrate: ## Aplica las migraciones pendientes a la base de datos
 	.venv/bin/alembic upgrade head

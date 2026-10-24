@@ -98,7 +98,7 @@ browser
 ### Correo (`themes/compras/email`)
 
 - `html/template.ftl`: macro `emailLayout` con el mismo diseño que los correos de la app
-  (`src/compras/infrastructure/mail/templates/layout.html`). Los mensajes pasan por
+  (`src/billing/infrastructure/mail/templates/layout.html`). Los mensajes pasan por
   `kcSanitize`, que quita estilos en línea, así que los estilos están en el `<style>` de la plantilla.
 - `messages/messages_es.properties`: asuntos y textos de activación, recuperación de
   contraseña, acciones pendientes, prueba de SMTP y nombres de las acciones requeridas.

@@ -1,6 +1,6 @@
 # Interfaz web (Streamlit)
 
-Código en `src/compras/presentation/streamlit/`. Se arranca con `python -m compras` (o
+Código en `src/billing/presentation/streamlit/`. Se arranca con `python -m billing` (o
 `make dev`), que ejecuta `streamlit run app.py`. Textos en español; identificadores en inglés.
 
 ## Entrada (`app.py`)

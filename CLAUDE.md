@@ -12,7 +12,7 @@ Stack: Streamlit (multipage `st.navigation`, OIDC login via `st.login`), SQLAlch
 
 - Setup: `make install` (`.venv`, `pip install -e ".[dev]"`, pre-commit hooks). Runtime deps are in `pyproject.toml`; LLM SDKs are extras (`anthropic`, `openai`, `gemini`, `llm`). Don't make extras reference `compras[...]` itself: it hangs pip resolution in Docker.
 - Full stack: `make up` (creates `.env` from `.env.example`). App on 8502, Keycloak 8180, pgAdmin 5050, Postgres 5433, Mailpit 8025 (SMTP 1025), GreenMail SMTP 3025 / IMAP 3143. Ports 5432/8081 belong to another project on this machine.
-- Local app: `make dev` (db, keycloak, mailpit, greenmail in Docker; `python -m compras` on 8501). Local worker: `make worker`.
+- Local app: `make dev` (db, keycloak, mailpit, greenmail in Docker; `python -m billing` on 8501). Local worker: `make worker`.
 - Test data: `make seed` / `make seed-reset`; `make bank-samples` (sends sample bank alerts to GreenMail and connects cliente@'s mailbox); `make sync-once`.
 - Lint/format: `make lint` (pre-commit: ruff check + format, line length 120). pre-commit only sees files git knows about (`git add -N` new files).
 - Migrations: `make migrate`; new one with `.venv/bin/alembic revision -m "..."` written by hand; `.venv/bin/alembic check` must report no differences.
@@ -21,7 +21,7 @@ Stack: Streamlit (multipage `st.navigation`, OIDC login via `st.login`), SQLAlch
 
 ## Architecture (hexagonal)
 
-`src/compras/`: `domain/` (dataclass entities, rules, `ports/` Protocols) ← `application/` (use cases, receive adapters as arguments) ← `presentation/streamlit/`, `worker/`, `scripts/`. `infrastructure/` implements the ports. `bootstrap.py` is the only place that knows concrete adapters; each swappable service has a registry in its infrastructure package:
+`src/billing/`: `domain/` (dataclass entities, rules, `ports/` Protocols) ← `application/` (use cases, receive adapters as arguments) ← `presentation/streamlit/`, `worker/`, `scripts/`. `infrastructure/` implements the ports. `bootstrap.py` is the only place that knows concrete adapters; each swappable service has a registry in its infrastructure package:
 
 - Persistence: `infrastructure/persistence/registry.py` (`COMPRAS_PERSISTENCE` = `sql` | `memory`). SQL adapter uses imperative mapping (`orm.py`), so domain classes don't inherit from SQLAlchemy. `SqlAlchemyUnitOfWork.__exit__` only calls `session.close()` (a `rollback()` would expire loaded objects). The memory UoW deep-copies state per block. Category uniqueness index differs by dialect (`tables.DIALECT_SPECIFIC_INDEXES`; `migrations/env.py` filters it); migrations use `batch_alter_table` so SQLite works.
 - LLM: `infrastructure/llm/registry.py` (`PROVIDERS`). Agents (`application/agents/`: `invoice`, `bank_notification`, prompts in `prompts/*.md`) only see the `LLMClient` port and neutral blocks from `domain/llm.py`. Per-agent provider/model is stored in `agent_settings` (admin UI: Configuración → Agentes IA) and resolved on every call by `bootstrap.agent(name)`; default from `COMPRAS_LLM_PROVIDER` or the first provider with an API key, else `local` (rules only). Ollama gets `reasoning_effort` from `OLLAMA_REASONING_EFFORT` (default `none`, much faster).

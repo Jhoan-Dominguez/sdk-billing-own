@@ -9,7 +9,7 @@
 | `db` | `postgres:17-alpine` | `DB_PORT` (5433) | Bases `compras` (app), `keycloak` y `compras_test` |
 | `keycloak` | propia (`infra/docker/keycloak/Dockerfile`, Keycloak 26.8) | `KEYCLOAK_PORT` (8180) | Identidad: login, registro, 2FA, correos |
 | `app` | propia (`infra/docker/app/Dockerfile`) | `APP_PORT` (8502) | App web Streamlit |
-| `worker` | la misma que `app` | — | `python -m compras.worker`: sincroniza buzones IMAP |
+| `worker` | la misma que `app` | — | `python -m billing.worker`: sincroniza buzones IMAP |
 | `pgadmin` | `dpage/pgadmin4:9` | `PGADMIN_PORT` (5050) | Administración de PostgreSQL (servidor ya registrado) |
 | `mailpit` | `axllent/mailpit:v1.27` | `MAILPIT_PORT` (8025) web, `MAILPIT_SMTP_PORT` (1025) SMTP | Captura el correo saliente de la app y de Keycloak |
 | `greenmail` | `greenmail/standalone:2.1.3` | `GREENMAIL_SMTP_PORT` (3025), `GREENMAIL_IMAP_PORT` (3143) | Bandeja IMAP de pruebas para notificaciones bancarias |
@@ -52,7 +52,7 @@ Mailpit, proveedores LLM (`OLLAMA_BASE_URL` apunta a `host.docker.internal`, res
 - `pip install ".[llm]"`: el paquete con los SDK de Anthropic, OpenAI y Gemini.
 - Copia `.streamlit/config.toml` (tema), `scripts/` y el `entrypoint.sh`.
 - `entrypoint.sh` genera `.streamlit/secrets.toml` con `scripts/write_secrets.py` (salvo
-  `COMPRAS_SKIP_SECRETS=1`) y ejecuta el comando: `python -m compras --server.address=0.0.0.0 --server.port=8501`.
+  `COMPRAS_SKIP_SECRETS=1`) y ejecuta el comando: `python -m billing --server.address=0.0.0.0 --server.port=8501`.
 
 ## Imagen de Keycloak (`infra/docker/keycloak/`)
 

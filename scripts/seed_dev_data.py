@@ -16,11 +16,11 @@ import sys
 from dataclasses import dataclass, field
 from datetime import date
 
-from compras import bootstrap
-from compras.application import purchases as purchase_service
-from compras.application import users as user_service
-from compras.domain.auth import ADMIN, CLIENTE
-from compras.domain.periods import last_months, month_bounds
+from billing import bootstrap
+from billing.application import purchases as purchase_service
+from billing.application import users as user_service
+from billing.domain.auth import ADMIN, CLIENTE
+from billing.domain.periods import last_months, month_bounds
 
 # --- Catálogo: comercios, rango de importe y productos típicos por categoría -------
 

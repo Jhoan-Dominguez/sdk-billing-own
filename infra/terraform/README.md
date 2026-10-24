@@ -41,5 +41,5 @@ Para validar sin credenciales: `terraform init -backend=false && terraform valid
 
 ## Pendiente en la app para AWS
 
-- Adaptador `FileStorage` para S3 en `src/compras/infrastructure/storage/` y su rama en `compras/bootstrap.py`.
+- Adaptador `FileStorage` para S3 en `src/billing/infrastructure/storage/` y su rama en `billing/bootstrap.py`.
 - Keycloak en modo `start` con `KC_HOSTNAME=https://auth.<dominio>`.

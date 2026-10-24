@@ -37,7 +37,7 @@ Reglas:
 4. `presentation/`, `worker/` y `scripts/` obtienen los adaptadores de `bootstrap.py` y
    llaman a los casos de uso. Las páginas no contienen lógica de negocio ni SQL.
 
-## Composition root (`src/compras/bootstrap.py`)
+## Composition root (`src/billing/bootstrap.py`)
 
 Es el único módulo que conoce las clases concretas. Expone fábricas cacheadas:
 
@@ -78,8 +78,8 @@ quitar una implementación es tocar solo esa carpeta:
 ## Árbol de carpetas
 
 ```
-src/compras/
-├── __init__.py, __main__.py      `python -m compras` arranca Streamlit
+src/billing/
+├── __init__.py, __main__.py      `python -m billing` arranca Streamlit
 ├── settings.py                   variables de entorno (ver configuracion.md)
 ├── bootstrap.py                  composition root
 ├── domain/
@@ -110,7 +110,7 @@ src/compras/
 │   ├── pages/                    resumen, tabla_resumen, importar, comparativa, configuracion
 │   ├── components/               session, layout, formatting, forms, files, profile, settings/
 │   └── assets/styles.css
-└── worker/__main__.py            `python -m compras.worker`: sincroniza buzones IMAP
+└── worker/__main__.py            `python -m billing.worker`: sincroniza buzones IMAP
 infra/
 ├── docker/app/                   imagen de la app y del worker, entrypoint
 ├── docker/keycloak/              imagen de Keycloak, realm, temas login/email, script de Google

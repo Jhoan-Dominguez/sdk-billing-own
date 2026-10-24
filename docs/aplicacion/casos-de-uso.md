@@ -1,4 +1,4 @@
-# Casos de uso (`src/compras/application/`)
+# Casos de uso (`src/billing/application/`)
 
 Funciones sin estado que reciben la unidad de trabajo y los adaptadores que necesitan. No
 importan Streamlit ni infraestructura, así que sirven igual a la app web, al worker y a los scripts.
@@ -89,7 +89,7 @@ Ver [servicios/correos-bancarios.md](../servicios/correos-bancarios.md).
   `create`, `update`, `delete`, `test_connection`.
 - `sync.py`: `SyncReport`, `sync_mailbox`, `sync_all`.
 
-## Dominio (`src/compras/domain/`)
+## Dominio (`src/billing/domain/`)
 
 | Módulo | Contenido |
 |---|---|

@@ -130,13 +130,13 @@ services:
       keycloak:
         condition: service_healthy
 
-  # Sincroniza los buzones IMAP de notificaciones bancarias (python -m compras.worker).
+  # Sincroniza los buzones IMAP de notificaciones bancarias (python -m billing.worker).
   worker:
     build:
       context: .
       dockerfile: infra/docker/app/Dockerfile
     restart: unless-stopped
-    command: ["python", "-m", "compras.worker"]
+    command: ["python", "-m", "billing.worker"]
     environment:
       <<: *app-env
       COMPRAS_SKIP_SECRETS: "1"

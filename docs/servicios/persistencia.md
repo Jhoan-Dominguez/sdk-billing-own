@@ -59,8 +59,8 @@ Convenciones que todo motor debe respetar:
 
 ```python
 BACKENDS = {
-    "sql": "compras.infrastructure.persistence.sqlalchemy.backend",
-    "memory": "compras.infrastructure.persistence.memory.backend",
+    "sql": "billing.infrastructure.persistence.sqlalchemy.backend",
+    "memory": "billing.infrastructure.persistence.memory.backend",
 }
 ```
 

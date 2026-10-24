@@ -70,7 +70,7 @@ Comprobaciones rápidas:
 
 ```bash
 # Plantillas de bancos contra sus ejemplos
-.venv/bin/python -c "from compras.infrastructure.extraction import bank_rules as b; \
+.venv/bin/python -c "from billing.infrastructure.extraction import bank_rules as b; \
 print(all(b.match(p.example, 'x@' + t.senders[0]) for t in b.TEMPLATES for p in t.patterns))"
 # Esquema de la base frente a tables.py
 .venv/bin/alembic check
@@ -90,6 +90,6 @@ print(all(b.match(p.example, 'x@' + t.senders[0]) for t in b.TEMPLATES for p in 
 ## Pruebas
 
 Las pruebas automáticas (`tests/`) son de la estructura anterior al refactor y están
-pendientes de reescribir contra `src/compras`. La verificación de esta versión se hizo con
+pendientes de reescribir contra `src/billing`. La verificación de esta versión se hizo con
 scripts de punta a punta contra los servicios reales (Keycloak, PostgreSQL, SQLite, memoria,
 Mailpit, GreenMail y Ollama) y con `streamlit.testing.v1.AppTest` sobre todas las páginas.

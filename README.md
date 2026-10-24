@@ -107,7 +107,7 @@ Sin ninguno, la app usa solo reglas: lee PDFs digitales, correos y las alertas d
 Arquitectura hexagonal (puertos y adaptadores). Las dependencias apuntan hacia dentro: el dominio no conoce la base de datos, Streamlit, los proveedores LLM ni los servidores de correo.
 
 ```
-src/compras/
+src/billing/
 ├── domain/            Entidades, reglas (roles, seguridad) y puertos (interfaces)
 ├── application/       Casos de uso: compras, importación, usuarios, categorías, reportes,
 │                      security/ (confirmaciones), agents/ (agentes LLM), bank_emails/ (buzones)

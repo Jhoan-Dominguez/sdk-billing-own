@@ -2,7 +2,7 @@
   Diseño común de los correos: cabecera verde con la marca, tarjeta blanca y pie.
   Los textos (messages_es.properties) pasan por kcSanitize, que quita estilos en
   línea: por eso todo el estilo vive aquí. Mantener en sintonía con
-  src/compras/infrastructure/mail/templates/layout.html.
+  src/billing/infrastructure/mail/templates/layout.html.
 -->
 <#macro emailLayout>
 <!doctype html>

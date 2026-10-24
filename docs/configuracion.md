@@ -1,6 +1,6 @@
 # Configuración
 
-Toda la configuración sale de variables de entorno. `src/compras/settings.py` las lee **una
+Toda la configuración sale de variables de entorno. `src/billing/settings.py` las lee **una
 vez al importar el paquete**, cargando antes `.env` del directorio de trabajo (el mismo
 archivo que lee Docker Compose). Las variables ya definidas en el entorno tienen prioridad, y
 una variable vacía en `.env` (`VAR=`) cuenta como no definida para las que tienen valor por

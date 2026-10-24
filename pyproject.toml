@@ -3,7 +3,7 @@ requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "compras"
+name = "billing"
 version = "0.1.0"
 description = "Registro de compras mensuales con importación de facturas"
 requires-python = ">=3.13"
@@ -32,7 +32,7 @@ llm = ["anthropic>=1.0", "openai>=2.0", "google-genai>=1.20"]
 dev = ["anthropic>=1.0", "openai>=2.0", "google-genai>=1.20", "pytest>=8", "pre-commit>=4", "ruff>=0.17"]
 
 [project.scripts]
-compras = "compras.__main__:main"
+billing = "billing.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -52,7 +52,7 @@ extend-exclude = ["data"]
 select = ["E", "W", "F", "I", "UP", "B", "SIM"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["compras"]
+known-first-party = ["billing"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

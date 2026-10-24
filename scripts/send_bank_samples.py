@@ -22,8 +22,8 @@ from datetime import date, datetime, timedelta
 from email.message import EmailMessage
 from email.utils import format_datetime, make_msgid
 
-from compras import bootstrap
-from compras.application.bank_emails import mailboxes as mailbox_service
+from billing import bootstrap
+from billing.application.bank_emails import mailboxes as mailbox_service
 
 IN_DOCKER = os.environ.get("POSTGRES_HOST") == "db"
 DEFAULT_HOST = "greenmail" if IN_DOCKER else "localhost"

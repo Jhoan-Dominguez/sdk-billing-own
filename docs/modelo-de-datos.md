@@ -1,6 +1,6 @@
 # Modelo de datos
 
-Las entidades son dataclasses en `src/compras/domain/models.py`. El adaptador SQL las mapea
+Las entidades son dataclasses en `src/billing/domain/models.py`. El adaptador SQL las mapea
 de forma imperativa (`infrastructure/persistence/sqlalchemy/orm.py`) a las tablas definidas
 en `tables.py`; el adaptador en memoria las guarda tal cual. Los campos marcados
 `init=False` los rellena el almacenamiento (ids, fechas por defecto) o son relaciones.

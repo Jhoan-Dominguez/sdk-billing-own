@@ -20,7 +20,7 @@ pago. Este servicio las convierte en **borradores de compra** en Importar factur
 | Sincronización | `application/bank_emails/sync.py` → `sync_mailbox`, `sync_all`, `SyncReport` |
 | IMAP | `infrastructure/mail/imap.py` → `ImapGateway`, `ImapMailbox`, `sender_matches` |
 | Cifrado | `infrastructure/crypto/fernet.py` → `FernetCipher` |
-| Worker | `worker/__main__.py` (`python -m compras.worker`) |
+| Worker | `worker/__main__.py` (`python -m billing.worker`) |
 | Interfaz | `components/settings/mailboxes.py` (Configuración → Correo bancario), `pages/importar.py` |
 | Datos de prueba | `scripts/send_bank_samples.py` (`make bank-samples`) |
 
@@ -88,7 +88,7 @@ BankTemplate(
 Comprobación rápida de todas las plantillas con sus ejemplos:
 
 ```bash
-.venv/bin/python -c "from compras.infrastructure.extraction import bank_rules as b; \
+.venv/bin/python -c "from billing.infrastructure.extraction import bank_rules as b; \
 print(all(b.match(p.example, 'x@' + t.senders[0]) for t in b.TEMPLATES for p in t.patterns))"
 ```
 
@@ -134,9 +134,9 @@ estado: última sincronización, movimientos importados y último error.
 ### Worker
 
 ```bash
-python -m compras.worker              # bucle cada COMPRAS_MAIL_SYNC_INTERVAL segundos
-python -m compras.worker --once       # una pasada (make sync-once en Docker)
-python -m compras.worker --interval 30
+python -m billing.worker              # bucle cada COMPRAS_MAIL_SYNC_INTERVAL segundos
+python -m billing.worker --once       # una pasada (make sync-once en Docker)
+python -m billing.worker --interval 30
 ```
 
 - Servicio `worker` de Docker Compose (misma imagen que la app, `COMPRAS_SKIP_SECRETS=1`).
