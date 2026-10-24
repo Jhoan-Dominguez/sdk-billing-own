@@ -4,43 +4,51 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Monthly purchase tracker (Spanish UI). Purchases are entered manually or imported from invoice files (images, camera photos, PDFs, `.eml` emails); imported files are kept on disk and converted into a draft the user reviews before it becomes a purchase.
+Monthly purchase tracker (Spanish UI). Purchases are entered manually, imported from invoice files (images, camera photos, PDFs, `.eml`), or created from bank alert emails (uploaded or read from the user's IMAP mailbox). Every import becomes a draft the user reviews before it becomes a purchase.
 
-Stack: Streamlit (multipage via `st.navigation`), SQLAlchemy 2.0 on SQLite, pypdf, Anthropic SDK for invoice extraction. `streamlit[pdf]` is required for `st.pdf`.
+Stack: Streamlit (multipage `st.navigation`, OIDC login via `st.login`), SQLAlchemy 2 + Alembic (PostgreSQL by default; any SQLAlchemy URL works), Keycloak 26.8 (login, registration with email verification, TOTP 2FA), LLM providers behind a port (Anthropic, OpenAI/compatible, Gemini, Ollama), SMTP/IMAP. Docker Compose services: `app`, `worker`, `db`, `keycloak`, `pgadmin`, `mailpit` (outgoing mail UI), `greenmail` (test IMAP inbox). Detailed docs live in `docs/` (Spanish); keep them in sync when behaviour changes.
 
 ## Commands
 
-- Setup: `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`
-- Run (http://localhost:8501): `.venv/bin/streamlit run streamlit_app.py`. `.venv/bin/python main.py` does the same and forwards extra args.
-- Tests: `.venv/bin/python -m pytest`
-- Single test: `.venv/bin/python -m pytest tests/test_ui.py::test_summary_edit_and_delete`
+- Setup: `make install` (`.venv`, `pip install -e ".[dev]"`, pre-commit hooks). Runtime deps are in `pyproject.toml`; LLM SDKs are extras (`anthropic`, `openai`, `gemini`, `llm`). Don't make extras reference `compras[...]` itself: it hangs pip resolution in Docker.
+- Full stack: `make up` (creates `.env` from `.env.example`). App on 8502, Keycloak 8180, pgAdmin 5050, Postgres 5433, Mailpit 8025 (SMTP 1025), GreenMail SMTP 3025 / IMAP 3143. Ports 5432/8081 belong to another project on this machine.
+- Local app: `make dev` (db, keycloak, mailpit, greenmail in Docker; `python -m compras` on 8501). Local worker: `make worker`.
+- Test data: `make seed` / `make seed-reset`; `make bank-samples` (sends sample bank alerts to GreenMail and connects cliente@'s mailbox); `make sync-once`.
+- Lint/format: `make lint` (pre-commit: ruff check + format, line length 120). pre-commit only sees files git knows about (`git add -N` new files).
+- Migrations: `make migrate`; new one with `.venv/bin/alembic revision -m "..."` written by hand; `.venv/bin/alembic check` must report no differences.
+- Keycloak realm changes: `make keycloak-reimport` (drops the `keycloak` DB; uses `--force-recreate`). Theme/README changes: `make up SERVICE=keycloak`.
+- `tests/` still targets the pre-refactor `app` package and is broken; rewriting it is pending.
 
-## Configuration (env vars, read once in `app/config.py` at import)
+## Architecture (hexagonal)
 
-- `COMPRAS_DATA_DIR` (default `./data`): holds `compras.db` and `uploads/`.
-- `COMPRAS_DATABASE_URL`: overrides the SQLite URL.
-- `COMPRAS_EXTRACTOR`: `claude` or `local`. Defaults to `claude` only if `ANTHROPIC_API_KEY` is set.
-- `COMPRAS_CLAUDE_MODEL` (default `claude-opus-5-5`), `COMPRAS_MONEDA` (default currency).
+`src/compras/`: `domain/` (dataclass entities, rules, `ports/` Protocols) ← `application/` (use cases, receive adapters as arguments) ← `presentation/streamlit/`, `worker/`, `scripts/`. `infrastructure/` implements the ports. `bootstrap.py` is the only place that knows concrete adapters; each swappable service has a registry in its infrastructure package:
 
-## Architecture
+- Persistence: `infrastructure/persistence/registry.py` (`COMPRAS_PERSISTENCE` = `sql` | `memory`). SQL adapter uses imperative mapping (`orm.py`), so domain classes don't inherit from SQLAlchemy. `SqlAlchemyUnitOfWork.__exit__` only calls `session.close()` (a `rollback()` would expire loaded objects). The memory UoW deep-copies state per block. Category uniqueness index differs by dialect (`tables.DIALECT_SPECIFIC_INDEXES`; `migrations/env.py` filters it); migrations use `batch_alter_table` so SQLite works.
+- LLM: `infrastructure/llm/registry.py` (`PROVIDERS`). Agents (`application/agents/`: `invoice`, `bank_notification`, prompts in `prompts/*.md`) only see the `LLMClient` port and neutral blocks from `domain/llm.py`. Per-agent provider/model is stored in `agent_settings` (admin UI: Configuración → Agentes IA) and resolved on every call by `bootstrap.agent(name)`; default from `COMPRAS_LLM_PROVIDER` or the first provider with an API key, else `local` (rules only). Ollama gets `reasoning_effort` from `OLLAMA_REASONING_EFFORT` (default `none`, much faster).
+- Extraction: `infrastructure/extraction/`. `LLMInvoiceExtractor` adapts content to model capabilities (`documents.to_blocks`: image downscale, PDF as document, text, or rendered pages) and falls back to regex on any `LLMError`. Uploads never fail because of extraction. Bank alerts: `bank_rules.py` templates (Bancolombia, Davivienda, BBVA, Banco de Bogotá; each `Pattern` has an `example` that must match) first, then the `bank_notification` agent.
+- Mail: `infrastructure/mail/` (`SmtpMailer`/`ConsoleMailer` render `EmailContent` with `templates/layout.html`; `ImapGateway` reads read-only with `BODY.PEEK`). The Keycloak email theme mirrors the same layout.
 
-Layers: `app/` holds UI-agnostic domain code (models, services, extraction) plus `app/ui.py` (shared Streamlit widgets). `app_pages/*.py` are the Streamlit pages and are registered in `streamlit_app.py`. Keep DB and business logic out of the pages so they stay testable without Streamlit.
+Key rules:
 
-- **Import flow (draft → purchase):** `services.store_upload` writes the file to `UPLOAD_DIR` under a UUID name, runs `extraction.extract`, and stores an `Attachment` with `purchase_id = NULL` and the extracted `InvoiceData` in its `extracted` JSON column. An attachment with no `purchase_id` *is* a pending draft; there's no separate draft table. `services.confirm_draft` creates the `Purchase` (with `source` = attachment kind) and links the attachment.
-- **Extraction (`app/extraction.py`):** files are normalized into a list of `Part`s; emails are split into header, body text and their PDF/image attachments. The `claude` extractor sends the parts as image/document/text blocks to `client.beta.messages.parse(output_format=InvoiceData)` with server-side refusal fallbacks. The `local` extractor uses only text (pypdf + email body) plus regexes, and it can't read images or scanned PDFs. Any extractor exception falls back to local regexes and sets `extraction_error`, so uploads never fail because extraction failed.
-- **Purchase form:** `ui.purchase_form(key, values, items)` (an `st.form` with `st.data_editor` for line items) returns typed `(values, items)` on submit. Every create/edit/confirm path then calls `services.apply_values`, which validates, converts to `Decimal` (also handles pandas NaN and `,` decimals), drops blank editor rows, and computes the total from lines or subtotal+tax when it's blank.
-- **Streamlit state conventions:**
-  - Widget state is keyed. To reset a form after saving, bump a counter that is part of its key (`new_purchase_form`, `upload_no`).
-  - A widget's value can't be changed after the widget is created in the same run. Other pages therefore request a month change via `st.session_state["goto_month"]`, which `resumen.py` copies into the `month` selectbox key before rendering it.
-  - The edit dialog stays open through `st.session_state["editing"]` and isn't tied to the button's click value, so it survives full reruns.
-  - Use `ui.flash()` + `st.rerun()` for post-action toasts (rendered by `show_flash()` in `streamlit_app.py`).
-- **Sessions:** pages open `SessionLocal()` in a `with` block and render ORM objects inside it, because relationships are lazy-loaded.
-- **Money:** `Numeric(12,2)` / `Decimal` in the DB, converted to float only for display and charts. Totals are always grouped per currency (`services.totals_by`) and never summed across currencies.
-- **Schema:** tables come from `Base.metadata.create_all` (`ui.ensure_db`, cached with `st.cache_resource`). There are no migrations yet, so changing a model requires deleting `data/compras.db` or adding Alembic.
-- Deleting a purchase must also delete its files on disk (`services.delete_purchase`); DB cascades don't touch the filesystem.
+- **Data ownership:** queries on user data take a mandatory `owner_id` keyword; `None` means all users and must come only from `viewer.owner_filter()` (admin). `viewer.can_modify()` allows only the owner. Fetch single rows through use cases (`purchases.get`, `imports.get_draft`, `mailboxes.get`), never directly.
+- **Drafts:** an `Attachment` with `purchase_id = NULL` is a draft. `extraction_meta.document_type` is `factura` or `notificacion_bancaria`; confirming a bank draft sets `Purchase.source = "banco"`. Mailbox imports are deduplicated by `(owner_id, message_id)`.
+- **Sensitive account actions** (`domain/security.py`, `application/security/`): change password = email link; update/remove 2FA = email + OTP; delete account = email + OTP if enabled. OTP is proven by a Keycloak re-login (`prompt=login`, `max_age=0`) whose ID token must contain `amr` ∋ `otp`. That needs the `amr` client mapper **and** the `amr-pwd`/`amr-otp` authenticator configs in the realm's `authenticationFlows`. Tokens and `state` are stored only as SHA-256; `state` is single-use.
+- With `verifyEmail` on, Keycloak 26.8 registration doesn't ask for a password: it is set after the email link.
+- The app never sees passwords or TOTP secrets (Keycloak pages only). IMAP passwords are Fernet-encrypted with `COMPRAS_SECRET_KEY`.
+- Money is `Decimal`/`Numeric(12,2)`; totals are grouped per currency and never summed across currencies.
+- Deleting purchases, drafts, avatars or accounts must also delete files through `FileStorage` (DB cascades don't touch storage).
+- Docker hostname split: browser uses `localhost:8180`, containers use `keycloak:8080` (`KC_HOSTNAME` + `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`). Don't simplify either away. Containers reach host Ollama at `host.docker.internal`.
+- `settings.py` treats empty `.env` values (`VAR=`) as unset for variables with defaults.
 
-## Tests
+## Streamlit conventions
 
-- `tests/conftest.py` sets `COMPRAS_DATA_DIR` to a temp dir and forces `COMPRAS_EXTRACTOR=local` **before** importing `app`. Keep that ordering. The `db` fixture gives each test an empty DB, and `make_pdf()` builds text PDFs without dependencies.
-- UI tests use `streamlit.testing.v1.AppTest` with absolute paths to the page files. AppTest can't select `st.dataframe` rows, so `select_first_row` in `tests/test_ui.py` injects the selection widget state by patching `ElementTree.get_widget_states`. That helper relies on Streamlit internals and may need updating after Streamlit upgrades.
-- The Claude extractor is tested by monkeypatching `anthropic.Anthropic`, so tests make no network calls.
+- `app.py` is the gate: login redirect, `Viewer` in `st.session_state["viewer"]`, pages per role (`auth.PAGES_BY_ROLE`). Pages start with `current_viewer()`.
+- Configuración tabs live in `presentation/streamlit/components/settings/` (`security`, `account`, `mailboxes`, `agents`); `security.handle_return()` processes `?confirmar=`, `?state&code` and `?kc_action_status` on `/configuracion`.
+- Reset forms by bumping a counter in their key; use `flash()` + `st.rerun()` for toasts; other pages request a month with `st.session_state["goto_month"]`.
+- Destructive buttons use keys starting with `confirm-delete` (styled red in `assets/styles.css`).
+- UI strings, comments and docstrings in Spanish; identifiers in English.
+
+## Repo rules
+
+- Commits: plan them first for user approval; messages in English; small, focused commits; **no co-author trailers**.
+- `commands.md` holds the user's local rules and is untracked.
