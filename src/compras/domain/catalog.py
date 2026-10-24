@@ -20,5 +20,11 @@ PAYMENT_METHODS = ["Efectivo", "Tarjeta de débito", "Tarjeta de crédito", "Tra
 
 CURRENCIES = ["USD", "EUR", "MXN", "COP", "PEN", "CLP", "ARS", "GTQ", "CRC", "DOP", "UYU", "BOB", "PYG"]
 
-# Origen de una compra: a mano o el tipo de archivo del que se extrajo.
+# Origen de una compra: a mano, el tipo de archivo del que se extrajo o una
+# notificación bancaria (correo subido o leído de un buzón IMAP).
 SOURCE_MANUAL = "manual"
+SOURCE_BANK = "banco"
+
+# Tipo de documento de un borrador importado (Attachment.extraction_meta["document_type"]).
+DOCUMENT_INVOICE = "factura"
+DOCUMENT_BANK_NOTIFICATION = "notificacion_bancaria"
