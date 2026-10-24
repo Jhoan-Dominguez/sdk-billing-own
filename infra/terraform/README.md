@@ -9,7 +9,7 @@ Esqueleto listo para desarrollar el despliegue. Los módulos ya tienen su interf
 Internet ── ALB (HTTPS, ACM) ──┬── app.<dominio>  → ECS Fargate: app (imagen infra/docker/app)
                                └── auth.<dominio> → ECS Fargate: keycloak (infra/docker/keycloak)
                                          │
-              subredes privadas ─────────┼── RDS PostgreSQL (bases compras y keycloak)
+              subredes privadas ─────────┼── RDS PostgreSQL (bases billing y keycloak)
                                          ├── S3 (facturas y avatares: BILLING_STORAGE=s3)
                                          └── Secrets Manager (secretos de .env)
 ECR: una imagen por servicio · CloudWatch Logs: logs de las tareas

@@ -24,14 +24,14 @@ def main() -> int:
 
     env = os.environ.get
     realm_url = env("KEYCLOAK_INTERNAL_URL", f"http://localhost:{env('KEYCLOAK_PORT', '8180')}")
-    realm = env("KEYCLOAK_REALM", "compras")
+    realm = env("KEYCLOAK_REALM", "billing")
     values = {
         "auth": {
             "redirect_uri": env("AUTH_REDIRECT_URI", "http://localhost:8501/oauth2callback"),
             "cookie_secret": env("AUTH_COOKIE_SECRET"),
         },
         "auth.keycloak": {
-            "client_id": env("KEYCLOAK_CLIENT_ID", "compras-app"),
+            "client_id": env("KEYCLOAK_CLIENT_ID", "billing-app"),
             "client_secret": env("KEYCLOAK_CLIENT_SECRET"),
             "server_metadata_url": f"{realm_url}/realms/{realm}/.well-known/openid-configuration",
             # Pedir siempre credenciales: st.logout borra la cookie de Streamlit pero no

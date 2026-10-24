@@ -1,9 +1,9 @@
 # Keycloak
 
-Keycloak 26.8 en una imagen propia (`infra/docker/keycloak/`). Contiene el realm `compras`,
-el tema `compras` (login y correo) y el README como panel informativo del login.
+Keycloak 26.8 en una imagen propia (`infra/docker/keycloak/`). Contiene el realm `billing`,
+el tema `billing` (login y correo) y el README como panel informativo del login.
 
-## Realm `compras` (`realm-compras.json`)
+## Realm `billing` (`realm-billing.json`)
 
 Se importa **solo si el realm no existe** (arranque con `--import-realm` sobre una base
 vacía). Los marcadores `${VAR}` se sustituyen con variables del contenedor. Para aplicar
@@ -24,7 +24,7 @@ fijos, así que conservan sus datos).
 | `passwordPolicy` | `length(8) and notUsername` | |
 | `bruteForceProtected`, `failureFactor` | `true`, `5` | Bloqueo temporal tras 5 intentos |
 | `otpPolicy*` | TOTP, HmacSHA1, 6 dígitos, 30 s, ventana 1, no reutilizable | |
-| `loginTheme`, `emailTheme` | `compras` | |
+| `loginTheme`, `emailTheme` | `billing` | |
 | `defaultLocale`, `supportedLocales` | `es` | |
 | `smtpServer` | `${SMTP_HOST}:${SMTP_PORT}`, remitente `${SMTP_FROM}` «Registro de compras», `auth`/`user`/`password`/`starttls`/`ssl` desde `SMTP_*` | Correo de Keycloak (Mailpit en desarrollo) |
 | `browserFlow`, `registrationFlow`, `resetCredentialsFlow` | `browser`, `registration`, `reset credentials` | |
@@ -32,14 +32,14 @@ fijos, así que conservan sus datos).
 ### Roles
 
 `admin`, `cliente`, y los obligatorios `offline_access` y `uma_authorization` (el import falla
-sin ellos). `default-roles-compras` incluye `cliente`: toda cuenta nueva (registro o Google) es cliente.
+sin ellos). `default-roles-billing` incluye `cliente`: toda cuenta nueva (registro o Google) es cliente.
 
 ### Clientes
 
 | Cliente | Tipo | Uso |
 |---|---|---|
-| `compras-app` | Confidencial (`${KEYCLOAK_CLIENT_SECRET}`), *standard flow* | Login de Streamlit, acciones `kc_action` y reautenticación. Redirecciones `http://localhost:8501` y `:${APP_PORT}` a `/oauth2callback` y `/configuracion`. Mappers: **realm roles** → claim `roles`; **amr** → claim `amr` |
-| `compras-admin-api` | Cuenta de servicio (`${KEYCLOAK_ADMIN_API_SECRET}`) | La app gestiona con ella la cuenta del propio usuario. Roles de `realm-management`: `view-users`, `manage-users` (sin acceso al realm `master` ni a clientes) |
+| `billing-app` | Confidencial (`${KEYCLOAK_CLIENT_SECRET}`), *standard flow* | Login de Streamlit, acciones `kc_action` y reautenticación. Redirecciones `http://localhost:8501` y `:${APP_PORT}` a `/oauth2callback` y `/configuracion`. Mappers: **realm roles** → claim `roles`; **amr** → claim `amr` |
+| `billing-admin-api` | Cuenta de servicio (`${KEYCLOAK_ADMIN_API_SECRET}`) | La app gestiona con ella la cuenta del propio usuario. Roles de `realm-management`: `view-users`, `manage-users` (sin acceso al realm `master` ni a clientes) |
 
 ### Usuarios de desarrollo
 
@@ -48,11 +48,11 @@ Ids fijos (coinciden con `scripts/seed_dev_data.py`), correo verificado y contra
 
 | Id | Correo | Rol |
 |---|---|---|
-| `8f1c2a3e-0000-4000-8000-000000000001` | `admin@compras.example.com` | admin |
-| `…0101` | `cliente@compras.example.com` (Carlos Mendoza) | cliente |
-| `…0102` | `maria.lopez@compras.example.com` | cliente |
-| `…0103` | `juan.perez@compras.example.com` | cliente |
-| `…0104` | `sofia.ramirez@compras.example.com` | cliente |
+| `8f1c2a3e-0000-4000-8000-000000000001` | `admin@billing.example.com` | admin |
+| `…0101` | `cliente@billing.example.com` (Carlos Mendoza) | cliente |
+| `…0102` | `maria.lopez@billing.example.com` | cliente |
+| `…0103` | `juan.perez@billing.example.com` | cliente |
+| `…0104` | `sofia.ramirez@billing.example.com` | cliente |
 
 ### Flujos de autenticación
 
@@ -79,12 +79,12 @@ browser
 - `registration`: *Registration User Profile Creation* y *Password Validation*. Con
   `verifyEmail`, Keycloak 26.8 aplaza la contraseña hasta confirmar el correo.
 
-## Tema `compras`
+## Tema `billing`
 
-### Login (`themes/compras/login`)
+### Login (`themes/billing/login`)
 
 - `theme.properties`: `parent=base` (HTML sin estilos) y cada `kc*Class` mapeado a clases
-  `cp-*` de `resources/css/compras.css` (paleta de la app, modo claro y oscuro).
+  `cp-*` de `resources/css/billing.css` (paleta de la app, modo claro y oscuro).
 - `template.ftl`: dos columnas (formulario a la izquierda, `info.ftl` a la derecha).
 - `login.ftl`: correo, contraseña, «¿Olvidaste tu contraseña?», «Iniciar sesión» junto a
   «Crear cuenta», y «Continuar con Google» (deshabilitado hasta que exista el IdP `google`).
@@ -95,7 +95,7 @@ browser
 - `info.ftl` = README.md convertido a HTML al construir la imagen. **Antes de publicar en
   producción hay que quitarlo o cambiarlo**: el README contiene las contraseñas de desarrollo.
 
-### Correo (`themes/compras/email`)
+### Correo (`themes/billing/email`)
 
 - `html/template.ftl`: macro `emailLayout` con el mismo diseño que los correos de la app
   (`src/billing/infrastructure/mail/templates/layout.html`). Los mensajes pasan por
@@ -109,7 +109,7 @@ Tras cambiar el tema o el README: `make up SERVICE=keycloak`.
 
 `configure-google.sh` crea o actualiza el IdP `google` con `kcadm` (o lo quita con
 `--remove`), usando `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`. URI de redirección en Google
-Cloud: `http://localhost:8180/realms/compras/broker/google/endpoint`.
+Cloud: `http://localhost:8180/realms/billing/broker/google/endpoint`.
 
 ## Producción
 

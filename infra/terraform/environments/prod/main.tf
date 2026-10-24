@@ -1,5 +1,5 @@
 locals {
-  name = "compras-${var.environment}"
+  name = "billing-${var.environment}"
 }
 
 module "network" {

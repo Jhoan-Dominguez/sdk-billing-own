@@ -17,7 +17,7 @@ HELP = """
 (Cuenta de Google → Seguridad → Verificación en 2 pasos → Contraseñas de aplicaciones).
 **Outlook / Hotmail:** `outlook.office365.com`, puerto 993, SSL.
 **Desarrollo (GreenMail):** servidor `greenmail` desde Docker o `localhost` en local, puerto 3143,
-sin SSL; usuario `cliente@compras.example.com`, contraseña `Bandeja-Compras-2026`.
+sin SSL; usuario `cliente@billing.example.com`, contraseña `Bandeja-Compras-2026`.
 Envía alertas de prueba con `make bank-samples`.
 
 La app solo **lee** (no marca como leído, no borra ni mueve correos) y únicamente los de los

@@ -6,7 +6,7 @@
 
 | Servicio | Imagen | Puerto en el host | Función |
 |---|---|---|---|
-| `db` | `postgres:17-alpine` | `DB_PORT` (5433) | Bases `compras` (app), `keycloak` y `compras_test` |
+| `db` | `postgres:17-alpine` | `DB_PORT` (5433) | Bases `billing` (app), `keycloak` y `compras_test` |
 | `keycloak` | propia (`infra/docker/keycloak/Dockerfile`, Keycloak 26.8) | `KEYCLOAK_PORT` (8180) | Identidad: login, registro, 2FA, correos |
 | `app` | propia (`infra/docker/app/Dockerfile`) | `APP_PORT` (8502) | App web Streamlit |
 | `worker` | la misma que `app` | — | `python -m billing.worker`: sincroniza buzones IMAP |
@@ -58,8 +58,8 @@ Mailpit, proveedores LLM (`OLLAMA_BASE_URL` apunta a `host.docker.internal`, res
 
 Compilación en dos etapas: una etapa `python:3.13-slim` convierte `README.md` a HTML
 (`info.ftl`, panel derecho del login, dentro de `<#noparse>`), y la final
-(`quay.io/keycloak/keycloak:26.8`) copia el tema `compras` (login y correo), `info.ftl` y
-`realm-compras.json` a `data/import`. Arranca con `start-dev --import-realm`. Detalle en
+(`quay.io/keycloak/keycloak:26.8`) copia el tema `billing` (login y correo), `info.ftl` y
+`realm-billing.json` a `data/import`. Arranca con `start-dev --import-realm`. Detalle en
 [keycloak.md](keycloak.md).
 
 Separación de nombres de host: el navegador usa `localhost:8180` y la app `keycloak:8080`.
@@ -69,7 +69,7 @@ Separación de nombres de host: el navegador usa `localhost:8180` y la app `keyc
 ## Base de datos
 
 `infra/docker/postgres/init-databases.sql` (solo al crear el volumen) crea `keycloak` y
-`compras_test`; `POSTGRES_DB` (`compras`) la crea la imagen. pgAdmin tiene el servidor
+`compras_test`; `POSTGRES_DB` (`billing`) la crea la imagen. pgAdmin tiene el servidor
 registrado en `infra/docker/pgadmin/servers.json`.
 
 ## Operación habitual

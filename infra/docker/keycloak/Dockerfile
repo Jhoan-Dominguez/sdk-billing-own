@@ -1,4 +1,4 @@
-# Keycloak con el tema de login "compras" incluido.
+# Keycloak con el tema de login "billing" incluido.
 # Se construye desde la raíz del repo para poder leer README.md:
 #   docker build -f infra/docker/keycloak/Dockerfile .
 
@@ -13,6 +13,6 @@ html = markdown.markdown(pathlib.Path('/src/README.md').read_text(), extensions=
 pathlib.Path('/src/info.ftl').write_text('<#noparse>' + html + '</#noparse>')"
 
 FROM quay.io/keycloak/keycloak:26.8
-COPY infra/docker/keycloak/themes/compras /opt/keycloak/themes/compras
-COPY --from=info /src/info.ftl /opt/keycloak/themes/compras/login/info.ftl
-COPY infra/docker/keycloak/realm-compras.json /opt/keycloak/data/import/realm-compras.json
+COPY infra/docker/keycloak/themes/billing /opt/keycloak/themes/billing
+COPY --from=info /src/info.ftl /opt/keycloak/themes/billing/login/info.ftl
+COPY infra/docker/keycloak/realm-billing.json /opt/keycloak/data/import/realm-billing.json

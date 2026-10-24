@@ -1,6 +1,6 @@
 """Pobla la base de DESARROLLO con usuarios y 12 meses de compras ficticias.
 
-Los usuarios coinciden con los del realm de Keycloak (infra/docker/keycloak/realm-compras.json):
+Los usuarios coinciden con los del realm de Keycloak (infra/docker/keycloak/realm-billing.json):
 mismos ids (`sub`), así que al iniciar sesión cada uno ve sus compras.
 
     .venv/bin/python scripts/seed_dev_data.py            # en local (Postgres del compose)
@@ -110,7 +110,7 @@ class Profile:
 PROFILES = [
     Profile(
         "8f1c2a3e-0000-4000-8000-000000000001",
-        "admin@compras.example.com",
+        "admin@billing.example.com",
         "Administrador Compras",
         ADMIN,
         {"Servicios": 3, "Tecnología": 2, "Restaurantes": 1},
@@ -118,7 +118,7 @@ PROFILES = [
     ),
     Profile(  # familia: mucho supermercado, gasto estable
         "8f1c2a3e-0000-4000-8000-000000000101",
-        "cliente@compras.example.com",
+        "cliente@billing.example.com",
         "Carlos Mendoza",
         CLIENTE,
         {"Supermercado": 6, "Servicios": 3, "Hogar": 2, "Salud": 2, "Transporte": 2, "Restaurantes": 1},
@@ -128,7 +128,7 @@ PROFILES = [
     ),
     Profile(  # gasto alto: tecnología, restaurantes y ocio, casi todo con tarjeta de crédito
         "8f1c2a3e-0000-4000-8000-000000000102",
-        "maria.lopez@compras.example.com",
+        "maria.lopez@billing.example.com",
         "María López",
         CLIENTE,
         {"Tecnología": 3, "Restaurantes": 4, "Entretenimiento": 3, "Supermercado": 2, "Transporte": 2},
@@ -138,7 +138,7 @@ PROFILES = [
     ),
     Profile(  # estudiante: poco gasto pero en aumento, educación y transporte
         "8f1c2a3e-0000-4000-8000-000000000103",
-        "juan.perez@compras.example.com",
+        "juan.perez@billing.example.com",
         "Juan Pérez",
         CLIENTE,
         {"Educación": 4, "Transporte": 4, "Restaurantes": 2, "Entretenimiento": 2, "Supermercado": 1},
@@ -149,7 +149,7 @@ PROFILES = [
     ),
     Profile(  # salud y hogar; viaje a España pagado en euros
         "8f1c2a3e-0000-4000-8000-000000000104",
-        "sofia.ramirez@compras.example.com",
+        "sofia.ramirez@billing.example.com",
         "Sofía Ramírez",
         CLIENTE,
         {"Salud": 4, "Hogar": 4, "Supermercado": 3, "Servicios": 2, "Otros": 1},

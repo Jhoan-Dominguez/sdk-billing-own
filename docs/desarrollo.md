@@ -64,7 +64,7 @@ volumen de Docker: los borradores creados por el worker de Docker no tienen su a
 | Agentes | Configuración → Agentes IA (admin) → elegir proveedor/modelo → Probar |
 | Facturas | Importar facturas → subir una foto, PDF o `.eml` |
 | Notificaciones bancarias | `make bank-samples` → `make sync-once` → Importar facturas |
-| Otra base de datos | `BILLING_DATABASE_URL=sqlite:///data/compras.sqlite make dev` o `BILLING_PERSISTENCE=memory` |
+| Otra base de datos | `BILLING_DATABASE_URL=sqlite:///data/billing.sqlite make dev` o `BILLING_PERSISTENCE=memory` |
 
 Comprobaciones rápidas:
 

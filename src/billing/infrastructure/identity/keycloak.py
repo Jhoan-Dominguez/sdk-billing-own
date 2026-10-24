@@ -1,11 +1,11 @@
 """Keycloak como proveedor de identidad.
 
 - KeycloakActions: URLs de "application initiated actions" (cambiar contraseña,
-  activar 2FA) que se completan en las páginas de Keycloak (tema `compras`); la app
+  activar 2FA) que se completan en las páginas de Keycloak (tema `billing`); la app
   nunca ve contraseñas ni secretos TOTP. Keycloak vuelve con
   `?kc_action_status=success|cancelled|error`.
 - KeycloakAccountAdmin: API de administración con la cuenta de servicio
-  `compras-admin-api` (roles view-users/manage-users del realm). Puede tocar a
+  `billing-admin-api` (roles view-users/manage-users del realm). Puede tocar a
   cualquier usuario del realm, así que bootstrap solo la crea para el usuario
   autenticado.
 - KeycloakReauthenticator: reautenticación para acciones sensibles

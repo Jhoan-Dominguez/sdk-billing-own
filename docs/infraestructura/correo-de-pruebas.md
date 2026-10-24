@@ -39,14 +39,14 @@ sirve por IMAP. Los buzones con contraseña se definen en `GREENMAIL_USERS`
 
 | Buzón | Contraseña |
 |---|---|
-| `cliente@compras.example.com` | `Bandeja-Compras-2026` |
-| `maria.lopez@compras.example.com` | `Bandeja-Compras-2026` |
+| `cliente@billing.example.com` | `Bandeja-Compras-2026` |
+| `maria.lopez@billing.example.com` | `Bandeja-Compras-2026` |
 
 ### Probar las notificaciones bancarias
 
 ```bash
 make bank-samples                                   # a cliente@ y conecta su buzón en la app
-make bank-samples TO=maria.lopez@compras.example.com
+make bank-samples TO=maria.lopez@billing.example.com
 make sync-once                                      # o espera al worker (BILLING_MAIL_SYNC_INTERVAL)
 ```
 
@@ -58,14 +58,14 @@ de Docker, `localhost` fuera; puerto 3143, sin SSL).
 
 Para conectar el buzón a mano: Configuración → Correo bancario → servidor `greenmail` (si la
 app corre en Docker) o `localhost` (`make dev`), puerto `3143`, SSL desactivado, usuario
-`cliente@compras.example.com`, contraseña `Bandeja-Compras-2026`.
+`cliente@billing.example.com`, contraseña `Bandeja-Compras-2026`.
 
 También se puede enviar cualquier `.eml` a GreenMail:
 
 ```bash
 python - <<'PY'
 import smtplib; from email.message import EmailMessage
-m = EmailMessage(); m["From"] = "alertas@bbva.com.co"; m["To"] = "cliente@compras.example.com"
+m = EmailMessage(); m["From"] = "alertas@bbva.com.co"; m["To"] = "cliente@billing.example.com"
 m["Subject"] = "BBVA te informa"; m.set_content("BBVA te informa: se realizó una compra por $12.000,00 en D1 con tu tarjeta de débito terminada en 1111 el 01/10/2026 a las 10:00.")
 smtplib.SMTP("localhost", 3025).send_message(m)
 PY

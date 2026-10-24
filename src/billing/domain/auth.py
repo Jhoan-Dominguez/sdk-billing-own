@@ -1,7 +1,7 @@
 """Roles y permisos de la app.
 
 La identidad la gestiona Keycloak (OIDC) a través de `st.login`; los roles llegan en
-el claim `roles` del ID token (mapper "realm roles" del cliente `compras-app`). Aquí
+el claim `roles` del ID token (mapper "realm roles" del cliente `billing-app`). Aquí
 solo se decide qué puede hacer cada rol, sin depender de Streamlit para poder probarlo.
 """
 

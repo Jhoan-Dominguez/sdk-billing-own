@@ -1,9 +1,9 @@
 {
-  "realm": "compras",
+  "realm": "billing",
   "displayName": "Registro de compras",
   "enabled": true,
-  "loginTheme": "compras",
-  "emailTheme": "compras",
+  "loginTheme": "billing",
+  "emailTheme": "billing",
   "sslRequired": "external",
   "registrationAllowed": true,
   "resetPasswordAllowed": true,
@@ -36,7 +36,7 @@
         "description": "${role_uma_authorization}"
       },
       {
-        "name": "default-roles-compras",
+        "name": "default-roles-billing",
         "description": "Roles que recibe toda cuenta nueva",
         "composite": true,
         "composites": {
@@ -51,7 +51,7 @@
   },
   "clients": [
     {
-      "clientId": "compras-app",
+      "clientId": "billing-app",
       "name": "Registro de compras (Streamlit)",
       "enabled": true,
       "protocol": "openid-connect",
@@ -104,7 +104,7 @@
       ]
     },
     {
-      "clientId": "compras-admin-api",
+      "clientId": "billing-admin-api",
       "name": "API de administración de la app (cuenta de servicio)",
       "description": "La app gestiona con ella el perfil, 2FA, sesiones y borrado del propio usuario.",
       "enabled": true,
@@ -121,9 +121,9 @@
   "users": [
     {
       "id": "8f1c2a3e-0000-4000-8000-000000000001",
-      "username": "admin@compras.example.com",
+      "username": "admin@billing.example.com",
       "enabled": true,
-      "email": "admin@compras.example.com",
+      "email": "admin@billing.example.com",
       "emailVerified": true,
       "firstName": "Administrador",
       "lastName": "Compras",
@@ -140,9 +140,9 @@
     },
     {
       "id": "8f1c2a3e-0000-4000-8000-000000000101",
-      "username": "cliente@compras.example.com",
+      "username": "cliente@billing.example.com",
       "enabled": true,
-      "email": "cliente@compras.example.com",
+      "email": "cliente@billing.example.com",
       "emailVerified": true,
       "firstName": "Carlos",
       "lastName": "Mendoza",
@@ -159,9 +159,9 @@
     },
     {
       "id": "8f1c2a3e-0000-4000-8000-000000000102",
-      "username": "maria.lopez@compras.example.com",
+      "username": "maria.lopez@billing.example.com",
       "enabled": true,
-      "email": "maria.lopez@compras.example.com",
+      "email": "maria.lopez@billing.example.com",
       "emailVerified": true,
       "firstName": "María",
       "lastName": "López",
@@ -178,9 +178,9 @@
     },
     {
       "id": "8f1c2a3e-0000-4000-8000-000000000103",
-      "username": "juan.perez@compras.example.com",
+      "username": "juan.perez@billing.example.com",
       "enabled": true,
-      "email": "juan.perez@compras.example.com",
+      "email": "juan.perez@billing.example.com",
       "emailVerified": true,
       "firstName": "Juan",
       "lastName": "Pérez",
@@ -197,9 +197,9 @@
     },
     {
       "id": "8f1c2a3e-0000-4000-8000-000000000104",
-      "username": "sofia.ramirez@compras.example.com",
+      "username": "sofia.ramirez@billing.example.com",
       "enabled": true,
-      "email": "sofia.ramirez@compras.example.com",
+      "email": "sofia.ramirez@billing.example.com",
       "emailVerified": true,
       "firstName": "Sofía",
       "lastName": "Ramírez",
@@ -215,9 +215,9 @@
       ]
     },
     {
-      "username": "service-account-compras-admin-api",
+      "username": "service-account-billing-admin-api",
       "enabled": true,
-      "serviceAccountClientId": "compras-admin-api",
+      "serviceAccountClientId": "billing-admin-api",
       "clientRoles": {
         "realm-management": [
           "view-users",
@@ -230,7 +230,7 @@
   "duplicateEmailsAllowed": false,
   "verifyEmail": true,
   "defaultRole": {
-    "name": "default-roles-compras",
+    "name": "default-roles-billing",
     "composite": true
   },
   "smtpServer": {

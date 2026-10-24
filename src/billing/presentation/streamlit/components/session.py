@@ -43,10 +43,10 @@ def start_login() -> None:
 
 
 def login_screen() -> None:
-    """Sin sesión: redirige a la pantalla de login (tema `compras` de Keycloak).
+    """Sin sesión: redirige a la pantalla de login (tema `billing` de Keycloak).
 
     El formulario de correo/contraseña, Google y "Crear cuenta" viven en Keycloak
-    (infra/docker/keycloak/themes/compras): la app nunca recibe contraseñas.
+    (infra/docker/keycloak/themes/billing): la app nunca recibe contraseñas.
     """
     if not auth_configured():
         st.error(

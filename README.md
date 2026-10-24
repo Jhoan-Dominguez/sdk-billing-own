@@ -57,11 +57,11 @@ Se inicia sesión con el correo. Estas contraseñas vienen de `.env.example` y *
 
 | Nombre | Correo | Rol | Contraseña |
 |---|---|---|---|
-| Administrador Compras | `admin@compras.example.com` | `admin` | `Admin-Compras-2026` |
-| Carlos Mendoza | `cliente@compras.example.com` | `cliente` | `Cliente-Compras-2026` |
-| María López | `maria.lopez@compras.example.com` | `cliente` | `Cliente-Compras-2026` |
-| Juan Pérez | `juan.perez@compras.example.com` | `cliente` | `Cliente-Compras-2026` |
-| Sofía Ramírez | `sofia.ramirez@compras.example.com` | `cliente` | `Cliente-Compras-2026` |
+| Administrador Compras | `admin@billing.example.com` | `admin` | `Admin-Compras-2026` |
+| Carlos Mendoza | `cliente@billing.example.com` | `cliente` | `Cliente-Compras-2026` |
+| María López | `maria.lopez@billing.example.com` | `cliente` | `Cliente-Compras-2026` |
+| Juan Pérez | `juan.perez@billing.example.com` | `cliente` | `Cliente-Compras-2026` |
+| Sofía Ramírez | `sofia.ramirez@billing.example.com` | `cliente` | `Cliente-Compras-2026` |
 
 `make seed` genera perfiles de gasto distintos para comparar: familia, gasto alto, estudiante con gasto creciente y un viaje pagado en EUR. `make seed-reset` los regenera.
 
@@ -71,8 +71,8 @@ Ningún correo sale a Internet:
 
 - **Mailpit** (http://localhost:8025) muestra los correos que envían la app y Keycloak: activación de cuentas, recuperación de contraseña y confirmaciones.
 - **GreenMail** es la bandeja de entrada IMAP de la que la app lee las notificaciones bancarias. Buzones disponibles, ambos con la contraseña `Bandeja-Compras-2026`:
-  - `cliente@compras.example.com`
-  - `maria.lopez@compras.example.com`
+  - `cliente@billing.example.com`
+  - `maria.lopez@billing.example.com`
 
 ## Agentes IA
 
@@ -154,15 +154,15 @@ Referencia completa en [docs/configuracion.md](docs/configuracion.md).
 
 El botón aparece deshabilitado hasta configurar el proveedor:
 
-1. Crea un ID de cliente OAuth en Google Cloud con el URI de redirección `http://localhost:8180/realms/compras/broker/google/endpoint`.
+1. Crea un ID de cliente OAuth en Google Cloud con el URI de redirección `http://localhost:8180/realms/billing/broker/google/endpoint`.
 2. Pon `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` en `.env`.
 3. Ejecuta `./infra/docker/keycloak/configure-google.sh` (`--remove` para quitarlo).
 
 ### Pantalla de login
 
-Es un tema propio de Keycloak (`infra/docker/keycloak/themes/compras`), con el formulario a la izquierda y este README a la derecha. Los correos de Keycloak usan el mismo diseño que los de la app. Tras cambiar el tema o este archivo: `make up SERVICE=keycloak`.
+Es un tema propio de Keycloak (`infra/docker/keycloak/themes/billing`), con el formulario a la izquierda y este README a la derecha. Los correos de Keycloak usan el mismo diseño que los de la app. Tras cambiar el tema o este archivo: `make up SERVICE=keycloak`.
 
-El realm (`infra/docker/keycloak/realm-compras.json`) se importa solo la primera vez que arranca Keycloak con una base vacía. Si cambias el JSON o las contraseñas de `.env`: `make keycloak-reimport`.
+El realm (`infra/docker/keycloak/realm-billing.json`) se importa solo la primera vez que arranca Keycloak con una base vacía. Si cambias el JSON o las contraseñas de `.env`: `make keycloak-reimport`.
 
 ## Desarrollo local
 

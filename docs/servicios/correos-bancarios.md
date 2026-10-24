@@ -155,7 +155,7 @@ python -m billing.worker --interval 30
 Ver [correo de pruebas](../infraestructura/correo-de-pruebas.md). En resumen:
 
 ```bash
-make bank-samples        # envía 8 alertas a cliente@compras.example.com y conecta su buzón
+make bank-samples        # envía 8 alertas a cliente@billing.example.com y conecta su buzón
 make sync-once           # o «Sincronizar ahora» en la app, o esperar al worker
 ```
 

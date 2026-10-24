@@ -34,7 +34,7 @@ La app en local (`make dev`) usa el puerto 8501.
 |---|---|---|
 | `BILLING_PERSISTENCE` | `sql` | Motor: `sql` (SQLAlchemy) o `memory` ([persistencia](servicios/persistencia.md)) |
 | `BILLING_DATABASE_URL` | — | URL completa de SQLAlchemy. Si existe, ignora las `POSTGRES_*` (p. ej. `sqlite:///data/compras.sqlite`) |
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | `compras` / — / `compras` | Credenciales de PostgreSQL (también las usa el contenedor `db`) |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | `billing` / — / `billing` | Credenciales de PostgreSQL (también las usa el contenedor `db`) |
 | `POSTGRES_HOST` | `localhost` | `db` dentro de Docker |
 | `POSTGRES_PORT` | `DB_PORT` | `5432` dentro de Docker |
 
@@ -50,10 +50,10 @@ La app en local (`make dev`) usa el puerto 8501.
 | Variable | Por defecto | Uso |
 |---|---|---|
 | `KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD` | `kcadmin` / — | Administrador de la consola (realm `master`) |
-| `KEYCLOAK_REALM` | `compras` | Realm de la app |
-| `KEYCLOAK_CLIENT_ID` | `compras-app` | Cliente OIDC |
+| `KEYCLOAK_REALM` | `billing` | Realm de la app |
+| `KEYCLOAK_CLIENT_ID` | `billing-app` | Cliente OIDC |
 | `KEYCLOAK_CLIENT_SECRET` | — | Secreto del cliente: login de Streamlit y reautenticación con 2FA |
-| `KEYCLOAK_ADMIN_API_CLIENT_ID` | `compras-admin-api` | Cuenta de servicio de gestión de cuentas |
+| `KEYCLOAK_ADMIN_API_CLIENT_ID` | `billing-admin-api` | Cuenta de servicio de gestión de cuentas |
 | `KEYCLOAK_ADMIN_API_SECRET` | — | Su secreto. Sin él, Configuración no puede gestionar la cuenta |
 | `KEYCLOAK_PUBLIC_URL` | `http://localhost:KEYCLOAK_PORT` | URL que ve el navegador |
 | `KEYCLOAK_INTERNAL_URL` | = pública | URL desde la app (`http://keycloak:8080` en Docker) |
@@ -72,7 +72,7 @@ recuperación de contraseña); ambos leen las mismas variables.
 | `BILLING_MAILER` | `smtp` | `smtp` o `console` (escribe el correo en el log) |
 | `SMTP_HOST` | `localhost` (local) / `mailpit` (Docker) | Servidor SMTP |
 | `SMTP_PORT` | `MAILPIT_SMTP_PORT` (local) / `1025` (Docker) | Puerto |
-| `SMTP_FROM` | `no-reply@compras.example.com` | Remitente |
+| `SMTP_FROM` | `no-reply@billing.example.com` | Remitente |
 | `SMTP_AUTH` | `false` | Solo Keycloak: si el servidor pide usuario |
 | `SMTP_USER` / `SMTP_PASSWORD` | — | Credenciales SMTP (la app autentica si `SMTP_USER` no está vacío) |
 | `SMTP_STARTTLS` / `SMTP_SSL` | `false` | Cifrado de la conexión |
@@ -106,12 +106,12 @@ esa elección (tabla `agent_settings`) tiene prioridad sobre estas variables.
 |---|---|---|
 | `BILLING_MAIL_SYNC_INTERVAL` | `120` | Segundos entre sincronizaciones del worker |
 | `BILLING_MAIL_SYNC_BATCH` | `50` | Correos importados como máximo por buzón y pasada |
-| `GREENMAIL_USERS` | `cliente:…@compras.example.com,maria.lopez:…` | Buzones de la bandeja de pruebas (`usuario:contraseña@dominio`) |
+| `GREENMAIL_USERS` | `cliente:…@billing.example.com,maria.lopez:…` | Buzones de la bandeja de pruebas (`usuario:contraseña@dominio`) |
 
 ## Otros
 
 | Variable | Por defecto | Uso |
 |---|---|---|
 | `BILLING_CURRENCY` | `USD` | Moneda por defecto (si el usuario no eligió otra en Preferencias) |
-| `PGADMIN_EMAIL` / `PGADMIN_PASSWORD` | `admin@compras.example.com` / — | Acceso a pgAdmin |
+| `PGADMIN_EMAIL` / `PGADMIN_PASSWORD` | `admin@billing.example.com` / — | Acceso a pgAdmin |
 | `BILLING_SKIP_SECRETS` | `0` | `1` = el entrypoint no genera `secrets.toml` (worker) |

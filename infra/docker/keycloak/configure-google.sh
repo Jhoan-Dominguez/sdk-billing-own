@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Configura (o actualiza) Google como proveedor de identidad del realm "compras".
+# Configura (o actualiza) Google como proveedor de identidad del realm "billing".
 # Con eso el botón "Continuar con Google" del login se activa solo.
 #
 #   1. En Google Cloud Console > APIs y servicios > Credenciales, crea un
 #      "ID de cliente de OAuth" de tipo "Aplicación web" con este URI de redirección:
-#        http://localhost:${KEYCLOAK_PORT}/realms/compras/broker/google/endpoint
+#        http://localhost:${KEYCLOAK_PORT}/realms/billing/broker/google/endpoint
 #   2. Pon GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET en .env
 #   3. ./infra/docker/keycloak/configure-google.sh            (o --remove para quitarlo)
 set -euo pipefail
@@ -28,15 +28,15 @@ CFG=/tmp/kcadm.config
 $KC config credentials --config "$CFG" --server http://localhost:8080 --realm master \
   --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" >/dev/null
 
-exists() { $KC get identity-provider/instances/google --config "$CFG" -r compras >/dev/null 2>&1; }
+exists() { $KC get identity-provider/instances/google --config "$CFG" -r billing >/dev/null 2>&1; }
 
 if [ "$ACTION" = "--remove" ]; then
-  exists && $KC delete identity-provider/instances/google --config "$CFG" -r compras
+  exists && $KC delete identity-provider/instances/google --config "$CFG" -r billing
   echo "Proveedor Google eliminado."
   exit 0
 fi
 
-ARGS=(--config "$CFG" -r compras
+ARGS=(--config "$CFG" -r billing
   -s alias=google -s providerId=google -s displayName=Google -s enabled=true
   -s trustEmail=true -s storeToken=false
   -s "config.clientId=$GOOGLE_CLIENT_ID" -s "config.clientSecret=$GOOGLE_CLIENT_SECRET"
@@ -49,4 +49,4 @@ else
   echo "Proveedor Google creado."
 fi
 EOS
-[ "${1:-}" = "--remove" ] || echo "URI de redirección para Google: http://localhost:${KEYCLOAK_PORT:-8180}/realms/compras/broker/google/endpoint"
+[ "${1:-}" = "--remove" ] || echo "URI de redirección para Google: http://localhost:${KEYCLOAK_PORT:-8180}/realms/billing/broker/google/endpoint"

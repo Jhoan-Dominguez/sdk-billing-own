@@ -4,8 +4,8 @@ Simula las alertas de Bancolombia, Davivienda, BBVA, Banco de Bogotá y Nequi (e
 última sin plantilla de reglas: la lee el agente LLM si hay uno configurado) más un
 correo publicitario que debe ignorarse. Las fechas son de los últimos días.
 
-    .venv/bin/python scripts/send_bank_samples.py                       # a cliente@compras.example.com
-    .venv/bin/python scripts/send_bank_samples.py --to maria.lopez@compras.example.com
+    .venv/bin/python scripts/send_bank_samples.py                       # a cliente@billing.example.com
+    .venv/bin/python scripts/send_bank_samples.py --to maria.lopez@billing.example.com
     .venv/bin/python scripts/send_bank_samples.py --connect             # y conecta el buzón en la app
     docker compose exec app python scripts/send_bank_samples.py --connect   (make bank-samples)
 
@@ -146,7 +146,7 @@ def connect(owner_email: str, host: str, password: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--to", default="cliente@compras.example.com")
+    parser.add_argument("--to", default="cliente@billing.example.com")
     parser.add_argument("--host", default=DEFAULT_HOST, help="host de GreenMail (SMTP e IMAP)")
     parser.add_argument("--connect", action="store_true", help="conectar el buzón del usuario en la app")
     parser.add_argument("--password", default=DEFAULT_PASSWORD, help="contraseña del buzón en GreenMail")

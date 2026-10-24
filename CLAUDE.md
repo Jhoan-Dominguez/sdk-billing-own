@@ -10,7 +10,7 @@ Stack: Streamlit (multipage `st.navigation`, OIDC login via `st.login`), SQLAlch
 
 ## Commands
 
-- Setup: `make install` (`.venv`, `pip install -e ".[dev]"`, pre-commit hooks). Runtime deps are in `pyproject.toml`; LLM SDKs are extras (`anthropic`, `openai`, `gemini`, `llm`). Don't make extras reference `compras[...]` itself: it hangs pip resolution in Docker.
+- Setup: `make install` (`.venv`, `pip install -e ".[dev]"`, pre-commit hooks). Runtime deps are in `pyproject.toml`; LLM SDKs are extras (`anthropic`, `openai`, `gemini`, `llm`). Don't make extras reference `billing[...]` itself: it hangs pip resolution in Docker.
 - Full stack: `make up` (creates `.env` from `.env.example`). App on 8502, Keycloak 8180, pgAdmin 5050, Postgres 5433, Mailpit 8025 (SMTP 1025), GreenMail SMTP 3025 / IMAP 3143. Ports 5432/8081 belong to another project on this machine.
 - Local app: `make dev` (db, keycloak, mailpit, greenmail in Docker; `python -m billing` on 8501). Local worker: `make worker`.
 - Test data: `make seed` / `make seed-reset`; `make bank-samples` (sends sample bank alerts to GreenMail and connects cliente@'s mailbox); `make sync-once`.

@@ -34,8 +34,8 @@ Quién envía:
 
 - **La app**: correos de confirmación de acciones sensibles ([seguridad](seguridad.md)).
 - **Keycloak**: activación de cuentas, recuperación de contraseña y avisos, con su propio SMTP
-  (`smtpServer` del realm, mismas variables `SMTP_*`) y el tema de correo `compras`
-  (`infra/docker/keycloak/themes/compras/email`), que reproduce el mismo diseño.
+  (`smtpServer` del realm, mismas variables `SMTP_*`) y el tema de correo `billing`
+  (`infra/docker/keycloak/themes/billing/email`), que reproduce el mismo diseño.
 
 ## Lectura: `MailboxGateway` / `Mailbox`
 

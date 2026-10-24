@@ -7,7 +7,7 @@ Tres mecanismos, todos sobre Keycloak y el correo:
 3. **Confirmación de acciones sensibles**: correo y, si hay 2FA, código.
 
 La app nunca ve contraseñas ni secretos TOTP: se escriben siempre en pantallas de Keycloak
-(tema `compras`).
+(tema `billing`).
 
 ## 1. Verificación en dos pasos
 
@@ -97,7 +97,7 @@ acción cada 60 s como máximo (`RESEND_COOLDOWN`), reautenticación de hace men
 
 ### Cómo se prueba el 2FA
 
-El cliente `compras-app` tiene el mapper **`amr`** (`oidc-amr-mapper`) y el flujo `browser`
+El cliente `billing-app` tiene el mapper **`amr`** (`oidc-amr-mapper`) y el flujo `browser`
 asigna referencias a sus autenticadores mediante `authenticatorConfig` del realm:
 
 | Autenticador | Configuración | Valor `amr` |

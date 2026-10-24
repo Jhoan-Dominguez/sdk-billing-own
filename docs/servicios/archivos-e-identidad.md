@@ -29,13 +29,13 @@ Configuración del servidor en [infraestructura/keycloak.md](../infraestructura/
 
 | Puerto | Adaptador | Para qué |
 |---|---|---|
-| — (Streamlit `st.login`) | `scripts/write_secrets.py` → `.streamlit/secrets.toml` | Login OIDC con el cliente `compras-app` |
+| — (Streamlit `st.login`) | `scripts/write_secrets.py` → `.streamlit/secrets.toml` | Login OIDC con el cliente `billing-app` |
 | `AccountActions.url(action, return_path)` | `KeycloakActions` | URL de *application initiated actions* (`UPDATE_PASSWORD`, `CONFIGURE_TOTP`); Keycloak vuelve con `kc_action_status` |
 | `AccountAdmin` | `KeycloakAccountAdmin` + `ServiceAccountToken` | Perfil, nombres, proveedores vinculados, contraseña, 2FA (`otp_enabled_since`, `remove_otp(created_before)`), sesiones, cerrar todas, borrar la cuenta |
 | `Reauthenticator` | `KeycloakReauthenticator` | Reautenticación con `prompt=login&max_age=0`; canjea el `code` y valida el ID token (JWKS con `joserfc`, `iss`, `aud`, `nonce`, `sub`) |
 
 - `ServiceAccountToken` obtiene y renueva el token de la cuenta de servicio
-  `compras-admin-api` (*client credentials*; roles `view-users` y `manage-users` del realm).
+  `billing-admin-api` (*client credentials*; roles `view-users` y `manage-users` del realm).
 - `bootstrap.account_admin(user_id)` solo se crea para el usuario autenticado: la cuenta de
   servicio podría tocar a cualquiera, así que nunca se expone un id elegido por el usuario.
 - Navegador y contenedores ven Keycloak en URLs distintas: `KEYCLOAK_PUBLIC_URL` (emisor de

@@ -32,11 +32,11 @@ def _database_url() -> str:
     if url := env("BILLING_DATABASE_URL"):
         return url
     # Fuera de Docker se conecta al Postgres del compose publicado en DB_PORT.
-    user = env("POSTGRES_USER", "compras")
+    user = env("POSTGRES_USER", "billing")
     password = env("POSTGRES_PASSWORD", "")
     host = env("POSTGRES_HOST", "localhost")
     port = env("POSTGRES_PORT") or env("DB_PORT", "5433")
-    db = env("POSTGRES_DB", "compras")
+    db = env("POSTGRES_DB", "billing")
     return f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
 
 
@@ -45,14 +45,14 @@ DATABASE_URL = _database_url()
 # --- Identidad (Keycloak) -----------------------------------------------------
 
 # URL pública (la que ve el navegador) e interna (desde el contenedor de la app).
-KEYCLOAK_REALM = env("KEYCLOAK_REALM", "compras")
+KEYCLOAK_REALM = env("KEYCLOAK_REALM", "billing")
 KEYCLOAK_PUBLIC_URL = env("KEYCLOAK_PUBLIC_URL", f"http://localhost:{env('KEYCLOAK_PORT', '8180')}")
 KEYCLOAK_INTERNAL_URL = env("KEYCLOAK_INTERNAL_URL", KEYCLOAK_PUBLIC_URL)
-KEYCLOAK_CLIENT_ID = env("KEYCLOAK_CLIENT_ID", "compras-app")
+KEYCLOAK_CLIENT_ID = env("KEYCLOAK_CLIENT_ID", "billing-app")
 # Secreto del cliente OIDC: lo usa también la reautenticación de acciones sensibles.
 KEYCLOAK_CLIENT_SECRET = env("KEYCLOAK_CLIENT_SECRET", "")
 # Cuenta de servicio con la que la app gestiona la cuenta del propio usuario.
-KEYCLOAK_ADMIN_API_CLIENT_ID = env("KEYCLOAK_ADMIN_API_CLIENT_ID", "compras-admin-api")
+KEYCLOAK_ADMIN_API_CLIENT_ID = env("KEYCLOAK_ADMIN_API_CLIENT_ID", "billing-admin-api")
 KEYCLOAK_ADMIN_API_SECRET = env("KEYCLOAK_ADMIN_API_SECRET", "")
 # Raíz pública de la app: a ella vuelve Keycloak tras cambiar contraseña o activar 2FA.
 APP_PUBLIC_URL = env("AUTH_REDIRECT_URI", "http://localhost:8501/oauth2callback").removesuffix("/oauth2callback")
@@ -64,7 +64,7 @@ MAILER_BACKEND = env("BILLING_MAILER") or "smtp"
 # Fuera de Docker se usa el SMTP de Mailpit publicado en el host (MAILPIT_SMTP_PORT).
 SMTP_HOST = env("SMTP_HOST") or "localhost"
 SMTP_PORT = int(env("SMTP_PORT") or env("MAILPIT_SMTP_PORT", "1025"))
-SMTP_FROM = env("SMTP_FROM") or "no-reply@compras.example.com"
+SMTP_FROM = env("SMTP_FROM") or "no-reply@billing.example.com"
 SMTP_USER = env("SMTP_USER", "")
 SMTP_PASSWORD = env("SMTP_PASSWORD", "")
 SMTP_STARTTLS = (env("SMTP_STARTTLS") or "false").lower() == "true"
