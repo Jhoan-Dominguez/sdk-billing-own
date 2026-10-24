@@ -6,8 +6,8 @@ PYTHON  ?= .venv/bin/python
 SERVICE ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help env build up down restart logs ps seed seed-reset keycloak-reimport \
-        install secrets dev migrate lint format tf-validate
+.PHONY: help env build up down restart logs ps seed seed-reset keycloak-reimport bank-samples mail \
+        install secrets dev worker sync-once migrate lint format tf-validate
 
 help: ## Muestra esta ayuda
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -22,7 +22,7 @@ build: env ## Construye las imágenes (app y Keycloak)
 
 up: env ## Levanta todo el stack en segundo plano (construye si hace falta)
 	$(COMPOSE) up -d --build $(SERVICE)
-	@echo "App: http://localhost:8502 · Keycloak: http://localhost:8180 · pgAdmin: http://localhost:5050"
+	@echo "App: http://localhost:8502 · Keycloak: http://localhost:8180 · pgAdmin: http://localhost:5050 · Mailpit: http://localhost:8025"
 
 down: ## Baja el stack (conserva los datos)
 	$(COMPOSE) down
@@ -45,7 +45,13 @@ seed-reset: ## Borra y regenera los datos de prueba
 keycloak-reimport: ## Reimporta el realm desde el JSON (borra los usuarios de Keycloak, no las compras)
 	$(COMPOSE) stop keycloak
 	$(COMPOSE) exec db sh -c 'psql -U "$$POSTGRES_USER" -d postgres -c "DROP DATABASE keycloak" -c "CREATE DATABASE keycloak"'
-	$(COMPOSE) up -d --build keycloak
+	$(COMPOSE) up -d --build --force-recreate keycloak
+
+bank-samples: ## Envía alertas bancarias de prueba a GreenMail y conecta el buzón de cliente@ (TO=otro@correo)
+	$(COMPOSE) exec app python scripts/send_bank_samples.py --connect $(if $(TO),--to $(TO))
+
+mail: ## Abre la bandeja de Mailpit (correos enviados por la app y Keycloak)
+	@echo "Mailpit: http://localhost:8025"; (xdg-open http://localhost:8025 || open http://localhost:8025) >/dev/null 2>&1 || true
 
 # --- Desarrollo local -------------------------------------------------------------
 
@@ -57,10 +63,16 @@ install: ## Crea .venv e instala el paquete con dependencias de desarrollo y hoo
 secrets: env ## Genera .streamlit/secrets.toml (login OIDC) desde .env
 	$(PYTHON) scripts/write_secrets.py
 
-dev: env ## Arranca Postgres y Keycloak en Docker y la app en local (http://localhost:8501)
-	$(COMPOSE) up -d db keycloak
+dev: env ## Arranca Postgres, Keycloak y correo en Docker y la app en local (http://localhost:8501)
+	$(COMPOSE) up -d db keycloak mailpit greenmail
 	$(PYTHON) scripts/write_secrets.py
 	$(PYTHON) -m compras
+
+worker: ## Ejecuta en local el worker que sincroniza los buzones IMAP
+	$(PYTHON) -m compras.worker
+
+sync-once: ## Una sola sincronización de todos los buzones (en el contenedor del worker)
+	$(COMPOSE) exec worker python -m compras.worker --once
 
 migrate: ## Aplica las migraciones pendientes a la base de datos
 	.venv/bin/alembic upgrade head
