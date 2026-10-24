@@ -46,7 +46,7 @@ Configuración del servidor en [infraestructura/keycloak.md](../infraestructura/
 | Rol | Páginas | Ve | Modifica | Otros permisos |
 |---|---|---|---|---|
 | `admin` | todas, incluida Comparativa de clientes | datos de todos (`SEES_ALL_ROLES`) | solo lo suyo | categorías generales, agentes IA; no puede borrar su cuenta |
-| `cliente` | Resumen, Tabla, Importar, Configuración | solo lo suyo | solo lo suyo | categorías personales |
+| `customer` | Resumen, Tabla, Importar, Configuración | solo lo suyo | solo lo suyo | categorías personales |
 
 `Viewer.owner_filter(selected)` devuelve el filtro de dueño que deben usar las consultas;
 `can_modify(owner_id)` solo permite al dueño.

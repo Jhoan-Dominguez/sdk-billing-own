@@ -61,7 +61,7 @@ class Attachment:
     original_name: str
     stored_name: str  # clave en el almacenamiento de archivos
     content_type: str
-    kind: str  # imagen | pdf | email
+    kind: str  # image | pdf | email
     size: int
     sha256: str
     extracted_text: str | None = None
@@ -82,7 +82,7 @@ class Attachment:
 
     @property
     def document_type(self) -> str:
-        """`factura` o `notificacion_bancaria` (ver domain/catalog.py)."""
+        """`invoice` o `bank_notification` (ver domain/catalog.py)."""
         return (self.extraction_meta or {}).get("document_type") or DOCUMENT_INVOICE
 
 
@@ -91,7 +91,7 @@ class Purchase:
     """Una compra (factura o recibo) confirmada por el usuario."""
 
     owner_id: str
-    source: str = SOURCE_MANUAL  # manual | imagen | pdf | email | banco
+    source: str = SOURCE_MANUAL  # manual | image | pdf | email | bank
     purchase_date: date | None = None
     vendor: str | None = None
     vendor_tax_id: str | None = None

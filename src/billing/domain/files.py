@@ -15,7 +15,7 @@ EXT_TO_TYPE = {
     ".eml": "message/rfc822",
 }
 
-KIND_IMAGE, KIND_PDF, KIND_EMAIL = "imagen", "pdf", "email"
+KIND_IMAGE, KIND_PDF, KIND_EMAIL = "image", "pdf", "email"
 
 
 def classify(filename: str, content_type: str | None) -> tuple[str, str]:

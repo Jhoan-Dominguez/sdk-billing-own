@@ -94,12 +94,12 @@ Ver [servicios/correos-bancarios.md](../servicios/correos-bancarios.md).
 | Módulo | Contenido |
 |---|---|
 | `models.py` | Entidades ([modelo de datos](../modelo-de-datos.md)) |
-| `auth.py` | Roles `admin`/`cliente`, `PAGES_BY_ROLE`, `Viewer`, `viewer_from_claims`, `primary_role` |
+| `auth.py` | Roles `admin`/`customer`, `PAGES_BY_ROLE`, `Viewer`, `viewer_from_claims`, `primary_role` |
 | `security.py` | Propósitos de confirmación y sus parámetros |
 | `invoice.py` | `InvoiceData`, `ExtractionResult`, `consistency_warnings` |
-| `bank.py` | `BankNotification`, `TRANSACTION_TYPES`, `parse_date` |
+| `bank.py` | `BankNotification`, `TRANSACTION_TYPES` (`purchase`, `withdrawal`, `transfer`, `payment`, `other`), `transaction_label()` (nombre en español), `parse_date` |
 | `llm.py` | Bloques, `Capabilities`, `LLMResult` |
-| `catalog.py` | Categorías iniciales, «Otros», métodos de pago, monedas, orígenes (`manual`, `banco`), tipos de documento |
+| `catalog.py` | Categorías iniciales, «Otros», métodos de pago, monedas, orígenes (`manual`, `bank`) y sus etiquetas (`SOURCE_LABELS`), tipos de documento |
 | `files.py` | Tipos de archivo aceptados y `classify` |
 | `periods.py` | `month_key`, `month_bounds`, `last_months` |
 | `values.py` | `clean_str`, `truncate`, `to_decimal`, `CENT` |

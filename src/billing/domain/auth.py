@@ -9,17 +9,17 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 ADMIN = "admin"
-CLIENTE = "cliente"
+CUSTOMER = "customer"
 
 # Orden de prioridad: si un usuario tiene varios roles, gana el primero.
-ROLES = (ADMIN, CLIENTE)
+ROLES = (ADMIN, CUSTOMER)
 
-ROLE_LABELS = {ADMIN: "Administrador", CLIENTE: "Cliente"}
+ROLE_LABELS = {ADMIN: "Administrador", CUSTOMER: "Cliente"}
 
 # Páginas visibles por rol (presentation/streamlit/pages/).
 PAGES_BY_ROLE: dict[str, tuple[str, ...]] = {
     ADMIN: ("resumen", "tabla_resumen", "importar", "comparativa", "configuracion"),
-    CLIENTE: ("resumen", "tabla_resumen", "importar", "configuracion"),
+    CUSTOMER: ("resumen", "tabla_resumen", "importar", "configuracion"),
 }
 
 # Roles que pueden ver los datos de todos los usuarios (análisis y comparativas).

@@ -4,6 +4,7 @@ import streamlit as st
 
 from billing import bootstrap
 from billing.application import imports
+from billing.domain.bank import transaction_label
 from billing.domain.catalog import DOCUMENT_BANK_NOTIFICATION
 from billing.domain.files import KIND_IMAGE, KIND_PDF
 from billing.domain.models import Attachment
@@ -64,7 +65,7 @@ def extraction_info(att: Attachment) -> None:
     meta = att.extraction_meta or {}
     if att.document_type == DOCUMENT_BANK_NOTIFICATION:
         bank = meta.get("bank") or {}
-        parts = [bank.get("bank") or "Banco", bank.get("transaction_type") or "movimiento"]
+        parts = [bank.get("bank") or "Banco", transaction_label(bank.get("transaction_type"))]
         if bank.get("card_last4"):
             parts.append(f"tarjeta/cuenta *{bank['card_last4']}")
         if bank.get("occurred_at_time"):

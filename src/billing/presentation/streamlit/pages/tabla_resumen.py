@@ -5,6 +5,7 @@ import streamlit as st
 
 from billing import bootstrap
 from billing.application import purchases as purchase_service
+from billing.domain.catalog import SOURCE_LABELS
 from billing.domain.errors import ValidationError
 from billing.domain.periods import month_key
 from billing.presentation.streamlit.components.files import show_attachment
@@ -99,7 +100,7 @@ with bootstrap.unit_of_work() as uow:
                 "Pago": p.payment_method,
                 "Moneda": p.currency,
                 "Total": float(p.total),
-                "Origen": p.source,
+                "Origen": SOURCE_LABELS.get(p.source, p.source),
                 "Archivos": len(p.attachments),
             }
             for p in shown
@@ -197,7 +198,7 @@ with bootstrap.unit_of_work() as uow:
                     ("Método de pago", p.payment_method),
                     ("Subtotal", money(p.subtotal, p.currency) if p.subtotal is not None else None),
                     ("Impuestos", money(p.tax, p.currency) if p.tax is not None else None),
-                    ("Origen", p.source),
+                    ("Origen", SOURCE_LABELS.get(p.source, p.source)),
                 ]
                 if value
             )
@@ -225,7 +226,9 @@ with bootstrap.unit_of_work() as uow:
             st.caption(p.notes)
     with files:
         for att in p.attachments:
-            with st.expander(f"{att.original_name} ({att.kind})", expanded=len(p.attachments) == 1):
+            with st.expander(
+                f"{att.original_name} ({SOURCE_LABELS.get(att.kind, att.kind)})", expanded=len(p.attachments) == 1
+            ):
                 show_attachment(att, height=450)
         if not p.attachments:
             st.caption("Compra registrada a mano, sin archivos.")

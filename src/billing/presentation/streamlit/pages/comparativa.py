@@ -32,7 +32,7 @@ months = last_months(n_months)
 start, end = month_bounds(months[0])[0], month_bounds(months[-1])[1]
 
 with bootstrap.unit_of_work() as uow:
-    users = user_service.list_users(uow, role=auth.CLIENTE)
+    users = user_service.list_users(uow, role=auth.CUSTOMER)
     # Los gráficos agrupan por nombre: si dos clientes se llaman igual se distinguen por usuario.
     repeated = {n for n, c in Counter(u.display_name for u in users).items() if c > 1}
     clients = {

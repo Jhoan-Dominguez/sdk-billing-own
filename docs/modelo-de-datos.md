@@ -32,7 +32,7 @@ sesión (`users.sync_from_claims`).
 | `username` | `String(150)` | no | `preferred_username` o correo |
 | `name` | `String(200)` | sí | Nombre completo |
 | `email` | `String(254)` | sí | Correo (destino de las confirmaciones) |
-| `role` | `String(20)` índice | no | `admin` o `cliente` |
+| `role` | `String(20)` índice | no | `admin` o `customer` |
 | `created_at` / `last_login_at` | `DateTime` | no | Alta y último login |
 | `avatar_name` | `String(64)` | sí | Archivo del avatar (`avatars/<nombre>`) |
 | `preferred_currency` | `String(3)` | sí | Moneda preferida |
@@ -54,7 +54,7 @@ Propiedad: `display_name` (nombre o usuario).
 | `currency` | `String(3)` | no | ISO 4217 |
 | `subtotal` / `tax` / `total` | `Numeric(12,2)` | sí / sí / no | Importes en `Decimal` |
 | `notes` | `Text` | sí | |
-| `source` | `String(20)` | no | `manual`, `imagen`, `pdf`, `email` o `banco` |
+| `source` | `String(20)` | no | `manual`, `image`, `pdf`, `email` o `bank` (etiquetas en español: `catalog.SOURCE_LABELS`) |
 | `created_at` | `DateTime` | no | |
 
 Relaciones: `items` (cascada delete-orphan), `attachments` (cascada), `owner` (solo lectura).
@@ -75,7 +75,7 @@ tabla de borradores aparte.
 | `owner_id` | FK `users.id`, índice | no | |
 | `purchase_id` | FK `purchases.id` `ON DELETE CASCADE`, índice | sí | Compra confirmada |
 | `original_name` / `stored_name` | `String(255)` (`stored_name` único) | no | Nombre subido / clave en el almacenamiento (UUID + extensión) |
-| `content_type` / `kind` | `String(100)` / `String(20)` | no | Tipo MIME y `imagen`/`pdf`/`email` |
+| `content_type` / `kind` | `String(100)` / `String(20)` | no | Tipo MIME y `image`/`pdf`/`email` |
 | `size` / `sha256` | `Integer` / `String(64)` índice | no | Tamaño y hash (detección de duplicados) |
 | `extracted_text` | `Text` | sí | Texto legible extraído |
 | `extracted` | `JSON` | sí | `InvoiceData` (precarga del formulario) |
@@ -92,8 +92,8 @@ sola vez por usuario (los NULL no chocan).
 
 ```json
 {
-  "document_type": "factura | notificacion_bancaria",
-  "method": "llm | reglas",
+  "document_type": "invoice | bank_notification",
+  "method": "llm | rules",
   "agent": "invoice | bank_notification",
   "provider": "anthropic | openai | gemini | ollama",
   "model": "claude-opus-5-5",
@@ -171,8 +171,8 @@ Propiedad: `senders` (lista normalizada).
 - `InvoiceData` / `ExtractedItem` (`domain/invoice.py`): salida del agente de facturas.
   Todo opcional: comercio, NIT, número, fecha `YYYY-MM-DD`, moneda, subtotal, impuestos,
   total, método de pago, categoría y líneas.
-- `BankNotification` (`domain/bank.py`): `is_transaction`, banco, tipo (`compra`, `retiro`,
-  `transferencia`, `pago`, `otro`), importe, moneda, comercio, fecha, hora, tipo y últimos 4
+- `BankNotification` (`domain/bank.py`): `is_transaction`, banco, tipo (`purchase`, `withdrawal`,
+  `transfer`, `payment`, `other`; se muestran en español con `transaction_label()`), importe, moneda, comercio, fecha, hora, tipo y últimos 4
   dígitos de la tarjeta, referencia. `to_invoice()` la convierte en `InvoiceData`.
 
 ## Migraciones (Alembic)
@@ -187,6 +187,7 @@ pendientes al arrancar (`bootstrap.init_database()`), y también el worker.
 | `0003` | `security_confirmations` |
 | `0004` | `agent_settings`; `attachments.extraction_meta` |
 | `0005` | `mailbox_connections`; `attachments.message_id`, `mailbox_id` e índice único |
+| `0006` | Valores guardados en inglés: `users.role` (`customer`), `purchases.source` y `attachments.kind` (`bank`, `image`), y en `extraction_meta` `document_type`, `method`, `bank.transaction_type` y `bank.card_type` |
 
 Las migraciones usan `op.batch_alter_table` para que funcionen también en SQLite. Para crear
 una nueva: `.venv/bin/alembic revision -m "descripcion"` y escribir `upgrade`/`downgrade` a

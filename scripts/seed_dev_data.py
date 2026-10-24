@@ -19,7 +19,7 @@ from datetime import date
 from billing import bootstrap
 from billing.application import purchases as purchase_service
 from billing.application import users as user_service
-from billing.domain.auth import ADMIN, CLIENTE
+from billing.domain.auth import ADMIN, CUSTOMER
 from billing.domain.periods import last_months, month_bounds
 
 # --- Catálogo: comercios, rango de importe y productos típicos por categoría -------
@@ -120,7 +120,7 @@ PROFILES = [
         "8f1c2a3e-0000-4000-8000-000000000101",
         "cliente@billing.example.com",
         "Carlos Mendoza",
-        CLIENTE,
+        CUSTOMER,
         {"Supermercado": 6, "Servicios": 3, "Hogar": 2, "Salud": 2, "Transporte": 2, "Restaurantes": 1},
         (10, 14),
         scale=1.0,
@@ -130,7 +130,7 @@ PROFILES = [
         "8f1c2a3e-0000-4000-8000-000000000102",
         "maria.lopez@billing.example.com",
         "María López",
-        CLIENTE,
+        CUSTOMER,
         {"Tecnología": 3, "Restaurantes": 4, "Entretenimiento": 3, "Supermercado": 2, "Transporte": 2},
         (9, 13),
         scale=1.7,
@@ -140,7 +140,7 @@ PROFILES = [
         "8f1c2a3e-0000-4000-8000-000000000103",
         "juan.perez@billing.example.com",
         "Juan Pérez",
-        CLIENTE,
+        CUSTOMER,
         {"Educación": 4, "Transporte": 4, "Restaurantes": 2, "Entretenimiento": 2, "Supermercado": 1},
         (5, 9),
         scale=0.5,
@@ -151,7 +151,7 @@ PROFILES = [
         "8f1c2a3e-0000-4000-8000-000000000104",
         "sofia.ramirez@billing.example.com",
         "Sofía Ramírez",
-        CLIENTE,
+        CUSTOMER,
         {"Salud": 4, "Hogar": 4, "Supermercado": 3, "Servicios": 2, "Otros": 1},
         (7, 11),
         scale=1.2,

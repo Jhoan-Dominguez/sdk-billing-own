@@ -36,7 +36,7 @@ class RuleBankParser:
         notification = bank_rules.match(text, email_sender(raw_email))
         if notification is None:
             return None
-        return _result(text, notification, {"method": "reglas"})
+        return _result(text, notification, {"method": "rules"})
 
 
 class LLMBankParser:
@@ -69,7 +69,7 @@ class LLMBankParser:
         except LLMError as exc:
             # Remitente de banco pero ilegible: queda como borrador para completarlo a mano.
             result = ExtractionResult(text=text, error=f"No se pudo leer la notificación: {exc}")
-            result.meta = {"document_type": DOCUMENT_BANK_NOTIFICATION, "method": "reglas", "warnings": []}
+            result.meta = {"document_type": DOCUMENT_BANK_NOTIFICATION, "method": "rules", "warnings": []}
             return result
         notification = llm_result.output
         if not notification.is_transaction:

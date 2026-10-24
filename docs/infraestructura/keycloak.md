@@ -31,8 +31,8 @@ fijos, así que conservan sus datos).
 
 ### Roles
 
-`admin`, `cliente`, y los obligatorios `offline_access` y `uma_authorization` (el import falla
-sin ellos). `default-roles-billing` incluye `cliente`: toda cuenta nueva (registro o Google) es cliente.
+`admin`, `customer`, y los obligatorios `offline_access` y `uma_authorization` (el import falla
+sin ellos). `default-roles-billing` incluye `customer`: toda cuenta nueva (registro o Google) es cliente.
 
 ### Clientes
 
@@ -49,10 +49,10 @@ Ids fijos (coinciden con `scripts/seed_dev_data.py`), correo verificado y contra
 | Id | Correo | Rol |
 |---|---|---|
 | `8f1c2a3e-0000-4000-8000-000000000001` | `admin@billing.example.com` | admin |
-| `…0101` | `cliente@billing.example.com` (Carlos Mendoza) | cliente |
-| `…0102` | `maria.lopez@billing.example.com` | cliente |
-| `…0103` | `juan.perez@billing.example.com` | cliente |
-| `…0104` | `sofia.ramirez@billing.example.com` | cliente |
+| `…0101` | `cliente@billing.example.com` (Carlos Mendoza) | customer |
+| `…0102` | `maria.lopez@billing.example.com` | customer |
+| `…0103` | `juan.perez@billing.example.com` | customer |
+| `…0104` | `sofia.ramirez@billing.example.com` | customer |
 
 ### Flujos de autenticación
 

@@ -17,7 +17,7 @@ Aplicación web para registrar compras mensuales, a mano o importando facturas (
   - Preferencias y categorías propias.
   - Agentes IA (solo administradores): proveedor y modelo de cada agente.
 
-Un **cliente** ve solo sus datos. Un **administrador** ve los de todos (en solo lectura los ajenos), gestiona las categorías generales y elige los agentes IA. Las cuentas nuevas, creadas con «Crear cuenta» o con Google, reciben el rol `cliente`.
+Un **cliente** ve solo sus datos. Un **administrador** ve los de todos (en solo lectura los ajenos), gestiona las categorías generales y elige los agentes IA. Las cuentas nuevas, creadas con «Crear cuenta» o con Google, reciben el rol `customer`.
 
 ### Seguridad
 
@@ -58,10 +58,10 @@ Se inicia sesión con el correo. Estas contraseñas vienen de `.env.example` y *
 | Nombre | Correo | Rol | Contraseña |
 |---|---|---|---|
 | Administrador Compras | `admin@billing.example.com` | `admin` | `Admin-Compras-2026` |
-| Carlos Mendoza | `cliente@billing.example.com` | `cliente` | `Cliente-Compras-2026` |
-| María López | `maria.lopez@billing.example.com` | `cliente` | `Cliente-Compras-2026` |
-| Juan Pérez | `juan.perez@billing.example.com` | `cliente` | `Cliente-Compras-2026` |
-| Sofía Ramírez | `sofia.ramirez@billing.example.com` | `cliente` | `Cliente-Compras-2026` |
+| Carlos Mendoza | `cliente@billing.example.com` | `customer` | `Cliente-Compras-2026` |
+| María López | `maria.lopez@billing.example.com` | `customer` | `Cliente-Compras-2026` |
+| Juan Pérez | `juan.perez@billing.example.com` | `customer` | `Cliente-Compras-2026` |
+| Sofía Ramírez | `sofia.ramirez@billing.example.com` | `customer` | `Cliente-Compras-2026` |
 
 `make seed` genera perfiles de gasto distintos para comparar: familia, gasto alto, estudiante con gasto creciente y un viaje pagado en EUR. `make seed-reset` los regenera.
 

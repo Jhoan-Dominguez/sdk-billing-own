@@ -6,7 +6,7 @@ Nequi, Scotiabank Colpatria...), pero puede ser cualquiera.
 - is_transaction: true solo si el correo informa un movimiento de dinero ya realizado.
   Publicidad, extractos, cambios de clave, códigos de verificación o avisos de
   seguridad sin movimiento → false y el resto de campos en null.
-- transaction_type: compra | retiro | transferencia | pago | otro.
+- transaction_type: purchase (compra) | withdrawal (retiro) | transfer (transferencia) | payment (pago) | other (otro).
 - amount como número sin símbolo ni separador de miles. En Colombia el punto separa
   miles y la coma los decimales ("$45.900,00" → 45900.0), pero algunos bancos usan el
   formato inverso ("$45,900.00"); decide según el contexto.
@@ -14,5 +14,5 @@ Nequi, Scotiabank Colpatria...), pero puede ser cualquiera.
 - merchant: el comercio, el destinatario de la transferencia o el lugar del retiro,
   tal como aparece.
 - occurred_on en formato YYYY-MM-DD y occurred_at_time en HH:MM (24 h).
-- card_type: credito | debito si se menciona; card_last4: los últimos 4 dígitos.
+- card_type: credit | debit si se menciona; card_last4: los últimos 4 dígitos.
 - No inventes datos: null si no aparecen.

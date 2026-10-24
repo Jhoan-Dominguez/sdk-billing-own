@@ -9,7 +9,7 @@ extraídos, que el usuario revisa en **Importar facturas** antes de guardarlo co
 
 | Tipo | Extensiones | `kind` |
 |---|---|---|
-| Imagen | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` (también la cámara) | `imagen` |
+| Imagen | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` (también la cámara) | `image` |
 | PDF | `.pdf` (digital o escaneado) | `pdf` |
 | Correo | `.eml` | `email` |
 
@@ -28,7 +28,7 @@ imports.store_upload(uow, storage, extractor, nombre, tipo, bytes, owner_id, ban
 
 En Importar, `imports.draft_values(att, categories)` precarga el formulario, descartando la
 categoría o el método de pago si no son válidos; `imports.confirm_draft()` crea la `Purchase`
-(`source` = `imagen`/`pdf`/`email`) y vincula el adjunto. `discard_draft()` borra fila y archivo.
+(`source` = `image`/`pdf`/`email`) y vincula el adjunto. `discard_draft()` borra fila y archivo.
 
 ## Extractores (`infrastructure/extraction/`)
 
@@ -49,9 +49,9 @@ categoría o el método de pago si no son válidos; `imports.confirm_draft()` cr
    | PDF | `DocumentBlock` | su texto (pypdf) si tiene ≥ 40 caracteres; si es escaneado y el modelo ve imágenes, las 5 primeras páginas renderizadas con pypdfium2 |
 
 4. `agent.run(blocks, categories=…, payment_methods=…)` → `InvoiceData` validado.
-5. `meta`: `document_type=factura`, `method=llm`, agente, proveedor, modelo, duración, tokens y
+5. `meta`: `document_type=invoice`, `method=llm`, agente, proveedor, modelo, duración, tokens y
    avisos. Si el LLM falla (`LLMError`), usa las regex, guarda el error en
-   `extraction_error` y `method=reglas`: **la subida nunca falla por la extracción**.
+   `extraction_error` y `method=rules`: **la subida nunca falla por la extracción**.
 
 ### `RegexExtractor` (sin red)
 

@@ -31,7 +31,7 @@ pago. Este servicio las convierte en **borradores de compra** en Importar factur
 1. **Reglas** (`RuleBankParser`): extrae el texto del correo (cabecera, cuerpo HTML → texto) y
    el remitente, elige las plantillas del banco por dominio del remitente (o, si es un
    reenvío, por el nombre del banco en el texto) y prueba sus patrones. Si alguno reconoce la
-   alerta → `method=reglas`. Gratis, instantáneo y sin red.
+   alerta → `method=rules`. Gratis, instantáneo y sin red.
 2. **Agente LLM**: si ninguna regla aplica y hay un agente disponible, `bank_notification`
    decide si es un movimiento (`is_transaction`) y extrae sus datos. Si no lo es (publicidad,
    códigos de verificación…) → `None` (no se importa).
@@ -39,12 +39,12 @@ pago. Este servicio las convierte en **borradores de compra** en Importar factur
      remitente es de un banco conocido o el texto menciona uno, para no gastar una llamada en
      cada factura por correo.
 3. Resultado: `ExtractionResult` con `data = notification.to_invoice()` y
-   `meta = {"document_type": "notificacion_bancaria", "method": …, "bank": {…}, "warnings": […]}`.
+   `meta = {"document_type": "bank_notification", "method": …, "bank": {…}, "warnings": […]}`.
 
 `to_invoice()`: comercio → `vendor`, importe → `total`, fecha → `purchase_date`, referencia →
 `invoice_number`, moneda (COP por defecto en bancos colombianos) y método de pago
 (crédito/débito → tarjeta; transferencia → Transferencia; retiro → Efectivo). Al confirmar, la
-compra queda con `source = "banco"`.
+compra queda con `source = "bank"`.
 
 ## Plantillas de bancos colombianos
 
@@ -77,7 +77,7 @@ BankTemplate(
     keyword="colpatria",
     patterns=(
         _p(
-            "compra",
+            PURCHASE,  # domain/bank.py: PURCHASE, WITHDRAWAL, TRANSFER, PAYMENT
             rf"compra por {_AMOUNT} en {_MERCHANT} con tu tarjeta \*(?P<last4>\d{{4}}) el {_DATE_DMY} a las {_TIME}",
             "Colpatria: compra por $10.000 en D1 con tu tarjeta *1234 el 01/04/2026 a las 08:05.",
         ),

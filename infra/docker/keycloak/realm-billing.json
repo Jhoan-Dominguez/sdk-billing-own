@@ -24,7 +24,7 @@
         "description": "Administrador de la aplicación de compras"
       },
       {
-        "name": "cliente",
+        "name": "customer",
         "description": "Cliente de la aplicación de compras"
       },
       {
@@ -41,7 +41,7 @@
         "composite": true,
         "composites": {
           "realm": [
-            "cliente",
+            "customer",
             "offline_access",
             "uma_authorization"
           ]
@@ -147,7 +147,7 @@
       "firstName": "Carlos",
       "lastName": "Mendoza",
       "realmRoles": [
-        "cliente"
+        "customer"
       ],
       "credentials": [
         {
@@ -166,7 +166,7 @@
       "firstName": "María",
       "lastName": "López",
       "realmRoles": [
-        "cliente"
+        "customer"
       ],
       "credentials": [
         {
@@ -185,7 +185,7 @@
       "firstName": "Juan",
       "lastName": "Pérez",
       "realmRoles": [
-        "cliente"
+        "customer"
       ],
       "credentials": [
         {
@@ -204,7 +204,7 @@
       "firstName": "Sofía",
       "lastName": "Ramírez",
       "realmRoles": [
-        "cliente"
+        "customer"
       ],
       "credentials": [
         {

@@ -16,7 +16,7 @@ class InvoiceExtractor(Protocol):
 class BankNotificationParser(Protocol):
     """Lee un correo (.eml) de un banco.
 
-    Devuelve un ExtractionResult con `meta["document_type"] = "notificacion_bancaria"`
+    Devuelve un ExtractionResult con `meta["document_type"] = "bank_notification"`
     y `meta["bank"]` (BankNotification) si el correo es una notificación de un
     movimiento, o None si no lo es. Como InvoiceExtractor, no lanza por fallos.
     """

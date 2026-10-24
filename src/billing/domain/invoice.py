@@ -38,7 +38,7 @@ class ExtractionResult:
     """Lo que devuelve un extractor: texto legible, datos detectados y error (si lo hubo).
 
     `meta` describe cómo se extrajo (Attachment.extraction_meta): document_type,
-    method (llm | reglas), agent, provider, model, duration_ms, tokens, warnings y,
+    method (llm | rules), agent, provider, model, duration_ms, tokens, warnings y,
     en notificaciones bancarias, `bank` (BankNotification como dict).
     """
 

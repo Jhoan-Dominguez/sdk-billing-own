@@ -21,7 +21,7 @@ class RegexExtractor:
     def extract(self, raw: bytes, kind: str, content_type: str, *, categories: list[str]) -> ExtractionResult:
         text = parts_text(to_parts(raw, kind, content_type))
         result = ExtractionResult(text=text, data=invoice_from_text(text))
-        result.meta = {"document_type": DOCUMENT_INVOICE, "method": "reglas"}
+        result.meta = {"document_type": DOCUMENT_INVOICE, "method": "rules"}
         if not text:
             result.error = NO_TEXT_ERROR
         result.meta["warnings"] = consistency_warnings(result.data)
@@ -61,7 +61,7 @@ class LLMInvoiceExtractor:
         except LLMError as exc:
             result.error = f"No se pudo extraer automáticamente: {exc}"
             result.data = invoice_from_text(result.text)
-            meta["method"] = "reglas"
+            meta["method"] = "rules"
         else:
             result.data = llm_result.output
             meta.update(llm_result.meta())
