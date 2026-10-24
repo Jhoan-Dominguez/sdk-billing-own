@@ -2,7 +2,16 @@
 
 from sqlalchemy.orm import registry, relationship
 
-from compras.domain.models import Attachment, Category, Purchase, PurchaseItem, User
+from compras.domain.models import (
+    AgentSetting,
+    Attachment,
+    Category,
+    MailboxConnection,
+    Purchase,
+    PurchaseItem,
+    SecurityConfirmation,
+    User,
+)
 from compras.infrastructure.persistence.sqlalchemy import tables
 
 mapper_registry = registry(metadata=tables.metadata)
@@ -31,4 +40,7 @@ def start_mappers() -> None:
         },
     )
     mapper_registry.map_imperatively(Category, tables.categories)
+    mapper_registry.map_imperatively(SecurityConfirmation, tables.security_confirmations)
+    mapper_registry.map_imperatively(AgentSetting, tables.agent_settings)
+    mapper_registry.map_imperatively(MailboxConnection, tables.mailbox_connections)
     _mapped = True
