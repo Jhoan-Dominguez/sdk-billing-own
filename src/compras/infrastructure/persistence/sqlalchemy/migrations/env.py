@@ -8,11 +8,16 @@ from alembic import context
 
 from compras import settings
 from compras.infrastructure.persistence.sqlalchemy.database import make_engine
-from compras.infrastructure.persistence.sqlalchemy.tables import metadata
+from compras.infrastructure.persistence.sqlalchemy.tables import index_applies, metadata
 
 
 def run(connection) -> None:
-    context.configure(connection=connection, target_metadata=metadata)
+    dialect = connection.dialect.name
+
+    def include_object(obj, name, type_, reflected, compare_to) -> bool:
+        return type_ != "index" or index_applies(name, dialect)
+
+    context.configure(connection=connection, target_metadata=metadata, include_object=include_object)
     with context.begin_transaction():
         context.run_migrations()
 

@@ -45,13 +45,22 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), server_default=sa.func.now(), nullable=False),
     )
     op.create_index("ix_categories_owner_id", "categories", ["owner_id"])
-    op.create_index(
-        "uq_categories_owner_name",
-        "categories",
-        ["owner_id", sa.text("lower(name)")],
-        unique=True,
-        postgresql_nulls_not_distinct=True,
-    )
+    # Ver tables.py: NULLS NOT DISTINCT en PostgreSQL, coalesce(owner_id, '') en otros motores.
+    if op.get_bind().dialect.name == "postgresql":
+        op.create_index(
+            "uq_categories_owner_name",
+            "categories",
+            ["owner_id", sa.text("lower(name)")],
+            unique=True,
+            postgresql_nulls_not_distinct=True,
+        )
+    else:
+        op.create_index(
+            "uq_categories_owner_name_portable",
+            "categories",
+            [sa.text("coalesce(owner_id, '')"), sa.text("lower(name)")],
+            unique=True,
+        )
     op.bulk_insert(categories, [{"name": name} for name in DEFAULT_CATEGORIES])
 
 
