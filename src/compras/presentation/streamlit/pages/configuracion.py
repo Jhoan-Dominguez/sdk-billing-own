@@ -1,9 +1,9 @@
-"""Configuración: perfil, seguridad, cuenta, preferencias y categorías.
+"""Configuración: perfil, seguridad, cuenta, correo bancario, preferencias, categorías
+y (administradores) agentes IA.
 
-Todo actúa sobre el usuario autenticado (viewer.user_id); nunca sobre otro.
+Todo actúa sobre el usuario autenticado (viewer.user_id); nunca sobre otro. Las
+pestañas grandes viven en components/settings/.
 """
-
-import time
 
 import pandas as pd
 import streamlit as st
@@ -11,76 +11,36 @@ import streamlit as st
 from compras import bootstrap
 from compras.application import categories as category_service
 from compras.application import users as user_service
-from compras.domain import auth
 from compras.domain.catalog import CURRENCIES, FALLBACK_CATEGORY, PAYMENT_METHODS
 from compras.domain.errors import ValidationError
-from compras.domain.ports.identity import ACTION_CONFIGURE_TOTP, ACTION_UPDATE_PASSWORD, IdentityError
+from compras.domain.ports.identity import IdentityError
 from compras.presentation.streamlit.components.layout import flash
 from compras.presentation.streamlit.components.profile import avatar
 from compras.presentation.streamlit.components.session import current_viewer, user_claims
-
-RETURN_PATH = "/configuracion"  # Keycloak vuelve aquí tras las acciones de la cuenta
+from compras.presentation.streamlit.components.settings import account, agents, mailboxes, security
+from compras.presentation.streamlit.components.settings.context import SettingsContext
 
 viewer = current_viewer()
-claims = user_claims()
+ctx = SettingsContext.load(viewer, user_claims())
+kc, kc_user, storage = ctx.kc, ctx.kc_user, ctx.storage
+keycloak_unavailable = ctx.keycloak_unavailable
 
 st.title("Configuración")
+# Vuelta de los enlaces de confirmación, de la verificación 2FA o de Keycloak.
+security.handle_return(ctx)
 
-# Vuelta desde una acción de Keycloak (cambiar contraseña, activar 2FA).
-ACTION_MESSAGES = {
-    ACTION_UPDATE_PASSWORD: "Contraseña actualizada",
-    ACTION_CONFIGURE_TOTP: "Verificación en dos pasos activada",
-}
-if status := st.query_params.get("kc_action_status"):
-    action = st.query_params.get("kc_action", "")
-    if status == "success":
-        st.toast(ACTION_MESSAGES.get(action, "Cambios guardados"), icon=":material/check_circle:")
-    elif status == "cancelled":
-        st.toast("Acción cancelada", icon=":material/info:")
-    else:
-        st.toast("Keycloak no pudo completar la acción", icon=":material/error:")
-    st.query_params.clear()  # quita también el `code` que añade Keycloak a la URL
-
-kc = bootstrap.account_admin(viewer.user_id)
-actions = bootstrap.account_actions()
-storage = bootstrap.file_storage()
-kc_user: dict = {}
-kc_error = None if kc else "La gestión de la cuenta no está configurada (falta KEYCLOAK_ADMIN_API_SECRET)."
-if kc:
-    try:
-        kc_user = kc.profile()
-    except IdentityError as e:
-        kc_error = str(e)
-
-
-def keycloak_unavailable() -> bool:
-    if kc_error:
-        st.warning(kc_error, icon=":material/cloud_off:")
-    return kc_error is not None
-
-
-def needs_recent_login(action: str) -> bool:
-    """Para acciones sensibles: pide volver a iniciar sesión si el login no es reciente."""
-    if auth.recently_authenticated(claims, time.time()):
-        return False
-    minutes = auth.RECENT_AUTH_SECONDS // 60
-    st.info(
-        f"Por seguridad, para {action} debes haber iniciado sesión en los últimos {minutes} minutos.",
-        icon=":material/lock_clock:",
-    )
-    st.button("Volver a iniciar sesión", on_click=st.logout, icon=":material/login:", key=f"relogin-{action}")
-    return True
-
-
-profile_tab, security_tab, account_tab, prefs_tab, categories_tab = st.tabs(
-    [
-        ":material/person: Perfil",
-        ":material/shield_lock: Seguridad",
-        ":material/badge: Cuenta",
-        ":material/tune: Preferencias",
-        ":material/category: Categorías",
-    ]
-)
+labels = [
+    ":material/person: Perfil",
+    ":material/shield_lock: Seguridad",
+    ":material/badge: Cuenta",
+    ":material/forward_to_inbox: Correo bancario",
+    ":material/tune: Preferencias",
+    ":material/category: Categorías",
+]
+if viewer.manages_agents:
+    labels.append(":material/smart_toy: Agentes IA")
+tabs = st.tabs(labels)
+profile_tab, security_tab, account_tab, mailbox_tab, prefs_tab, categories_tab = tabs[:6]
 
 # --- Perfil ---------------------------------------------------------------------
 
@@ -135,143 +95,16 @@ with profile_tab, bootstrap.unit_of_work() as uow:
                         flash("Datos personales actualizados")
                         st.rerun()
 
-# --- Seguridad ------------------------------------------------------------------
-
-
-def load_security() -> tuple | None:
-    try:
-        return kc.has_password(), kc.otp_enabled_since(), kc.sessions()
-    except IdentityError as e:
-        st.error(str(e), icon=":material/error:")
-        return None
-
+# --- Seguridad, cuenta y correo bancario ----------------------------------------
 
 with security_tab:
-    if not keycloak_unavailable() and (security := load_security()):
-        has_password, otp_since, sessions = security
+    security.render(ctx)
 
-        with st.container(border=True):
-            st.subheader("Contraseña")
-            st.write(
-                "Se cambia en la pantalla segura de inicio de sesión; la aplicación nunca ve tu contraseña."
-                if has_password
-                else "Tu cuenta entra con un proveedor externo. Puedes crear también una contraseña."
-            )
-            st.link_button(
-                "Cambiar contraseña" if has_password else "Crear contraseña",
-                actions.url(ACTION_UPDATE_PASSWORD, RETURN_PATH),
-                icon=":material/password:",
-            )
+with account_tab:
+    account.render(ctx)
 
-        with st.container(border=True):
-            st.subheader("Verificación en dos pasos (2FA)")
-            if otp_since is not False:
-                created = otp_since
-                st.success(
-                    "Activada con una app de autenticación" + (f" desde el {created:%d/%m/%Y}." if created else "."),
-                    icon=":material/verified_user:",
-                )
-                with st.popover("Desactivar 2FA", icon=":material/remove_moderator:"):
-                    if not needs_recent_login("desactivar la verificación en dos pasos"):
-                        st.write("Tu cuenta quedará protegida solo con la contraseña.")
-                        if st.button("Sí, desactivar", key="confirm-delete-otp"):
-                            try:
-                                kc.remove_otp()
-                            except IdentityError as e:
-                                st.error(str(e), icon=":material/error:")
-                            else:
-                                flash("Verificación en dos pasos desactivada")
-                                st.rerun()
-            else:
-                st.write(
-                    "Añade un código temporal de una app como Google Authenticator, Microsoft "
-                    "Authenticator o FreeOTP al iniciar sesión."
-                )
-                st.link_button(
-                    "Activar 2FA",
-                    actions.url(ACTION_CONFIGURE_TOTP, RETURN_PATH),
-                    type="primary",
-                    icon=":material/phonelink_lock:",
-                )
-
-        with st.container(border=True):
-            st.subheader("Sesiones abiertas")
-            if sessions:
-                st.dataframe(
-                    pd.DataFrame(
-                        [
-                            {
-                                "Dirección IP": s["ip"],
-                                "Inicio": s["start"],
-                                "Última actividad": s["last_access"],
-                            }
-                            for s in sessions
-                        ]
-                    ),
-                    hide_index=True,
-                    column_config={
-                        "Inicio": st.column_config.DatetimeColumn(format="DD/MM/YYYY HH:mm"),
-                        "Última actividad": st.column_config.DatetimeColumn(format="DD/MM/YYYY HH:mm"),
-                    },
-                )
-            else:
-                st.caption("No hay sesiones abiertas en el servidor de identidad.")
-            if st.button("Cerrar sesión en todos los dispositivos", icon=":material/devices_off:"):
-                try:
-                    kc.logout_everywhere()
-                except IdentityError as e:
-                    st.error(str(e), icon=":material/error:")
-                else:
-                    st.logout()
-
-# --- Cuenta ---------------------------------------------------------------------
-
-with account_tab, bootstrap.unit_of_work() as uow:
-    user = user_service.get(uow, viewer.user_id)
-    usage = category_service.usage(uow, owner_id=viewer.user_id)
-    with st.container(border=True):
-        st.subheader("Información de la cuenta")
-        providers = []
-        if kc and not kc_error:
-            try:
-                providers = kc.linked_providers()
-            except IdentityError:
-                providers = []
-        created = kc_user.get("created") or user.created_at
-        info = {
-            "Correo electrónico": user.email or "—",
-            "Rol": auth.ROLE_LABELS.get(viewer.role, viewer.role),
-            "Cuenta creada": f"{created:%d/%m/%Y}" if created else "—",
-            "Último inicio de sesión": f"{user.last_login_at:%d/%m/%Y %H:%M}",
-            "Acceso con": ", ".join(["Correo y contraseña", *[p.capitalize() for p in providers]]),
-            "Compras registradas": f"{sum(usage.values()):,}",
-            "ID de usuario": f"`{user.id}`",
-        }
-        st.markdown("\n".join(f"- **{label}:** {value}" for label, value in info.items()))
-
-    with st.container(border=True):
-        st.subheader(":red[Eliminar cuenta]")
-        if not viewer.can_delete_own_account:
-            st.caption(
-                "Las cuentas de administrador no se pueden eliminar desde aquí; pide a otro "
-                "administrador que lo haga desde la consola de Keycloak."
-            )
-        else:
-            st.write(
-                "Se borrarán de forma permanente tu cuenta, todas tus compras, archivos adjuntos, "
-                "avatar y categorías personales. Esta acción no se puede deshacer."
-            )
-            with st.popover("Eliminar mi cuenta", icon=":material/delete_forever:"):
-                if not keycloak_unavailable() and not needs_recent_login("eliminar tu cuenta"):
-                    typed = st.text_input(f"Escribe tu correo ({user.email}) para confirmar")
-                    confirmed = typed.strip().lower() == (user.email or "").lower() and bool(user.email)
-                    if st.button("Eliminar definitivamente", key="confirm-delete-account", disabled=not confirmed):
-                        try:
-                            user_service.delete_account(uow, storage, kc, user)
-                        except IdentityError as e:
-                            st.error(str(e), icon=":material/error:")
-                        else:
-                            st.logout()
+with mailbox_tab:
+    mailboxes.render(ctx)
 
 # --- Preferencias ---------------------------------------------------------------
 
@@ -408,3 +241,9 @@ with categories_tab, bootstrap.unit_of_work() as uow:
                         moved = category_service.delete(uow, target)
                         flash(f"Categoría «{old}» eliminada ({moved} compras movidas a {FALLBACK_CATEGORY})")
                         st.rerun()
+
+# --- Agentes IA (administradores) -----------------------------------------------
+
+if viewer.manages_agents:
+    with tabs[6]:
+        agents.render(ctx)

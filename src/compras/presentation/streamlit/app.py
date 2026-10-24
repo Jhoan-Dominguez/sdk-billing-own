@@ -7,9 +7,10 @@ from pathlib import Path
 
 import streamlit as st
 
-from compras import bootstrap, settings
+from compras import bootstrap
 from compras.application import imports
 from compras.application import users as user_service
+from compras.application.agents.registry import INVOICE
 from compras.domain import auth
 from compras.presentation.streamlit.components.layout import apply_styles, show_flash
 from compras.presentation.streamlit.components.profile import avatar, current_user
@@ -74,10 +75,8 @@ with st.sidebar:
     who.markdown(f"**{user.display_name if user else viewer.name}**  \n:green-badge[{auth.ROLE_LABELS[viewer.role]}]")
     st.button("Cerrar sesión", on_click=st.logout, icon=":material/logout:", width="stretch")
     st.divider()
-    st.caption(
-        f"Extractor de facturas: **{settings.EXTRACTOR}**"
-        + ("" if settings.EXTRACTOR == "claude" else " · define `ANTHROPIC_API_KEY` para leer fotos")
-    )
+    provider, model, _ = bootstrap.agent_choice(INVOICE)
+    st.caption(f"Lector de facturas: **{provider}**" + (f" · `{model}`" if model else " · solo reglas locales"))
 
 show_flash()
 current_page.run()
