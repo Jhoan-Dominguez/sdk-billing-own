@@ -17,11 +17,11 @@ Código en `src/billing/presentation/streamlit/`. Se arranca con `python -m bill
 
 | Página | Rol | Contenido |
 |---|---|---|
-| `resumen.py` — Resumen general | todos | Gasto del mes, compras, categoría y comercio principales; barras por mes, categoría, método y comercio (por moneda) |
-| `tabla_resumen.py` — Tabla resumen | todos | Compras del mes con filtro por categoría, detalle con adjuntos, editar, eliminar, exportar CSV y «Agregar compra». Un admin ve las ajenas en solo lectura |
-| `importar.py` — Importar facturas | todos | Subir archivos o tomar foto; borradores (facturas y alertas bancarias, también las de buzones) con vista previa, datos de extracción, avisos y formulario de confirmación |
-| `comparativa.py` — Comparativa de clientes | admin | Gasto por cliente, mapa de calor mensual y variación; una moneda a la vez |
-| `configuracion.py` — Configuración | todos | Pestañas: Perfil, Seguridad, Cuenta, Correo bancario, Preferencias, Categorías y (admin) Agentes IA |
+| `summary.py` (`/resumen`) — Resumen general | todos | Gasto del mes, compras, categoría y comercio principales; barras por mes, categoría, método y comercio (por moneda) |
+| `summary_table.py` (`/tabla_resumen`) — Tabla resumen | todos | Compras del mes con filtro por categoría, detalle con adjuntos, editar, eliminar, exportar CSV y «Agregar compra». Un admin ve las ajenas en solo lectura |
+| `imports.py` (`/importar`) — Importar facturas | todos | Subir archivos o tomar foto; borradores (facturas y alertas bancarias, también las de buzones) con vista previa, datos de extracción, avisos y formulario de confirmación |
+| `comparison.py` (`/comparativa`) — Comparativa de clientes | admin | Gasto por cliente, mapa de calor mensual y variación; una moneda a la vez |
+| `settings.py` (`/configuracion`) — Configuración | todos | Pestañas: Perfil, Seguridad, Cuenta, Correo bancario, Preferencias, Categorías y (admin) Agentes IA |
 
 ### Pestañas de Configuración (`components/settings/`)
 

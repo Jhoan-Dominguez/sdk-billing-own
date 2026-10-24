@@ -21,7 +21,7 @@ pago. Este servicio las convierte en **borradores de compra** en Importar factur
 | IMAP | `infrastructure/mail/imap.py` → `ImapGateway`, `ImapMailbox`, `sender_matches` |
 | Cifrado | `infrastructure/crypto/fernet.py` → `FernetCipher` |
 | Worker | `worker/__main__.py` (`python -m billing.worker`) |
-| Interfaz | `components/settings/mailboxes.py` (Configuración → Correo bancario), `pages/importar.py` |
+| Interfaz | `components/settings/mailboxes.py` (Configuración → Correo bancario), `pages/imports.py` |
 | Datos de prueba | `scripts/send_bank_samples.py` (`make bank-samples`) |
 
 ## Lectura de una alerta

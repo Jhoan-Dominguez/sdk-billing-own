@@ -87,7 +87,7 @@ En el borrador también se avisa de:
 
 ## Interfaz
 
-`presentation/streamlit/pages/importar.py`: pestañas «Subir archivos» (varios a la vez) y
+`presentation/streamlit/pages/imports.py`: pestañas «Subir archivos» (varios a la vez) y
 «Tomar foto»; lista «Pendientes de revisar» con icono de factura o de banco; vista previa del
 archivo (`show_attachment`), insignia del tipo de documento, «Leído con proveedor / modelo en
 N s» o «reglas locales», avisos, y el formulario de compra. Si el agente `invoice` está en

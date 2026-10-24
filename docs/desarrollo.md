@@ -78,7 +78,9 @@ print(all(b.match(p.example, 'x@' + t.senders[0]) for t in b.TEMPLATES for p in 
 
 ## Convenciones
 
-- Textos de interfaz, comentarios y docstrings en español; identificadores en inglés.
+- Textos de interfaz, comentarios, docstrings, prompts y documentación en español; identificadores,
+  nombres de archivo y valores guardados (roles, orígenes, tipos) en inglés. Las URLs de las
+  páginas y los parámetros que ve el usuario (`/configuracion`, `?confirmar=`) siguen en español.
 - Ruff (lint, isort y formato) con líneas de 120 caracteres; `make lint` antes de commitear.
   pre-commit solo ve archivos que git conoce (`git add -N` para los nuevos).
 - Nada de lógica de negocio ni SQL en las páginas: casos de uso en `application/`.

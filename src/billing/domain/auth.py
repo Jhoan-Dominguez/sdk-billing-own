@@ -18,8 +18,8 @@ ROLE_LABELS = {ADMIN: "Administrador", CUSTOMER: "Cliente"}
 
 # Páginas visibles por rol (presentation/streamlit/pages/).
 PAGES_BY_ROLE: dict[str, tuple[str, ...]] = {
-    ADMIN: ("resumen", "tabla_resumen", "importar", "comparativa", "configuracion"),
-    CUSTOMER: ("resumen", "tabla_resumen", "importar", "configuracion"),
+    ADMIN: ("summary", "summary_table", "imports", "comparison", "settings"),
+    CUSTOMER: ("summary", "summary_table", "imports", "settings"),
 }
 
 # Roles que pueden ver los datos de todos los usuarios (análisis y comparativas).

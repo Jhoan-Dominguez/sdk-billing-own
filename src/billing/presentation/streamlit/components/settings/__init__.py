@@ -1,1 +1,1 @@
-"""Pestañas de la página Configuración (pages/configuracion.py), una por módulo."""
+"""Pestañas de la página Configuración (pages/settings.py), una por módulo."""

@@ -52,18 +52,22 @@ with bootstrap.unit_of_work() as uow:
     pending = len(imports.drafts(uow, owner_id=viewer.user_id))
 
 
-def page(name: str, title: str, icon: str, **kwargs) -> st.Page:
-    return st.Page(PAGES_DIR / f"{name}.py", title=title, icon=icon, url_path=name, **kwargs)
+def page(name: str, url_path: str, title: str, icon: str, **kwargs) -> st.Page:
+    # `name` es el archivo en pages/; `url_path`, la URL que ve el usuario (en español).
+    return st.Page(PAGES_DIR / f"{name}.py", title=title, icon=icon, url_path=url_path, **kwargs)
 
 
 pages = {
-    "resumen": page("resumen", "Resumen general", ":material/dashboard:", default=True),
-    "tabla_resumen": page("tabla_resumen", "Tabla resumen", ":material/table_view:"),
-    "importar": page(
-        "importar", f"Importar facturas ({pending})" if pending else "Importar facturas", ":material/document_scanner:"
+    "summary": page("summary", "resumen", "Resumen general", ":material/dashboard:", default=True),
+    "summary_table": page("summary_table", "tabla_resumen", "Tabla resumen", ":material/table_view:"),
+    "imports": page(
+        "imports",
+        "importar",
+        f"Importar facturas ({pending})" if pending else "Importar facturas",
+        ":material/document_scanner:",
     ),
-    "comparativa": page("comparativa", "Comparativa de clientes", ":material/groups:"),
-    "configuracion": page("configuracion", "Configuración", ":material/settings:"),
+    "comparison": page("comparison", "comparativa", "Comparativa de clientes", ":material/groups:"),
+    "settings": page("settings", "configuracion", "Configuración", ":material/settings:"),
 }
 current_page = st.navigation([p for name, p in pages.items() if auth.can_view(viewer.role, name)])
 
