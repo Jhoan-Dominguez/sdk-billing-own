@@ -47,7 +47,7 @@ sirve por IMAP. Los buzones con contraseña se definen en `GREENMAIL_USERS`
 ```bash
 make bank-samples                                   # a cliente@ y conecta su buzón en la app
 make bank-samples TO=maria.lopez@compras.example.com
-make sync-once                                      # o espera al worker (COMPRAS_MAIL_SYNC_INTERVAL)
+make sync-once                                      # o espera al worker (BILLING_MAIL_SYNC_INTERVAL)
 ```
 
 `send_bank_samples.py` envía 8 correos con fechas de los últimos días: Bancolombia (compra,

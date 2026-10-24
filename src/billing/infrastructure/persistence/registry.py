@@ -1,4 +1,4 @@
-"""Motores de persistencia disponibles (COMPRAS_PERSISTENCE).
+"""Motores de persistencia disponibles (BILLING_PERSISTENCE).
 
 Cada motor es un paquete con un módulo `backend.py` que expone `create(settings)` y
 devuelve un PersistenceBackend. Para añadir un motor (MongoDB, DynamoDB...): crear
@@ -36,5 +36,5 @@ def create(name: str, settings) -> PersistenceBackend:
     try:
         module = BACKENDS[name]
     except KeyError:
-        raise UnknownBackend(f"COMPRAS_PERSISTENCE desconocido: {name!r}. Opciones: {', '.join(BACKENDS)}") from None
+        raise UnknownBackend(f"BILLING_PERSISTENCE desconocido: {name!r}. Opciones: {', '.join(BACKENDS)}") from None
     return importlib.import_module(module).create(settings)

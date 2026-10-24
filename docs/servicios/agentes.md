@@ -64,12 +64,12 @@ instala `.[llm]`. Si falta el SDK de un proveedor elegido, `bootstrap.agent()` d
 
 `registry.default_provider()`:
 
-1. `COMPRAS_LLM_PROVIDER` si está definido.
+1. `BILLING_LLM_PROVIDER` si está definido.
 2. Si no, el primero con credenciales entre `anthropic`, `openai` y `gemini`.
 3. Si no, `local`.
 
-Ollama no se elige solo (no tiene credenciales): se pide con `COMPRAS_LLM_PROVIDER=ollama` o
-desde la interfaz. `COMPRAS_LLM_MODEL` fija el modelo del proveedor por defecto.
+Ollama no se elige solo (no tiene credenciales): se pide con `BILLING_LLM_PROVIDER=ollama` o
+desde la interfaz. `BILLING_LLM_MODEL` fija el modelo del proveedor por defecto.
 
 ## Agentes
 

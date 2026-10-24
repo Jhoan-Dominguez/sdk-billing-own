@@ -1,9 +1,9 @@
 # Persistencia (base de datos intercambiable)
 
 Los casos de uso solo conocen el puerto `UnitOfWork` (`domain/ports/repositories.py`). El
-motor se elige con `COMPRAS_PERSISTENCE` y, para SQL, con la URL.
+motor se elige con `BILLING_PERSISTENCE` y, para SQL, con la URL.
 
-| `COMPRAS_PERSISTENCE` | Motor | Uso |
+| `BILLING_PERSISTENCE` | Motor | Uso |
 |---|---|---|
 | `sql` (por defecto) | SQLAlchemy 2 + Alembic. Cualquier URL: **PostgreSQL** (por defecto), **SQLite**, **MySQL/MariaDB**… | Producción y desarrollo |
 | `memory` | Diccionarios en el proceso | Pruebas, demos, desarrollo sin base |
@@ -12,13 +12,13 @@ Ejemplos:
 
 ```bash
 # PostgreSQL del compose (por defecto: se construye desde POSTGRES_*)
-COMPRAS_PERSISTENCE=sql
+BILLING_PERSISTENCE=sql
 # SQLite en un archivo
-COMPRAS_DATABASE_URL=sqlite:///data/compras.sqlite
+BILLING_DATABASE_URL=sqlite:///data/compras.sqlite
 # MySQL (instalar el driver: pip install pymysql)
-COMPRAS_DATABASE_URL=mysql+pymysql://usuario:clave@localhost:3306/compras
+BILLING_DATABASE_URL=mysql+pymysql://usuario:clave@localhost:3306/compras
 # Sin base de datos (los datos se pierden al reiniciar)
-COMPRAS_PERSISTENCE=memory
+BILLING_PERSISTENCE=memory
 ```
 
 ## Contrato (puertos)

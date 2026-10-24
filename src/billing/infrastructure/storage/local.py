@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 class LocalFileStorage:
-    """FileStorage sobre una carpeta del disco (COMPRAS_DATA_DIR/uploads)."""
+    """FileStorage sobre una carpeta del disco (BILLING_DATA_DIR/uploads)."""
 
     def __init__(self, root: Path) -> None:
         self.root = root.resolve()

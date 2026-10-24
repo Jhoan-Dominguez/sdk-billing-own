@@ -10,7 +10,7 @@ class FileStorage(Protocol):
 ```
 
 `LocalFileStorage(root)` (`infrastructure/storage/local.py`) guarda en
-`COMPRAS_DATA_DIR/uploads` (volumen `uploads` en Docker) y rechaza claves que intenten salir
+`BILLING_DATA_DIR/uploads` (volumen `uploads` en Docker) y rechaza claves que intenten salir
 de la carpeta.
 
 | Clave | Contenido |
@@ -20,7 +20,7 @@ de la carpeta.
 
 La base no borra archivos: los casos de uso lo hacen al borrar compras, descartar borradores,
 cambiar el avatar o eliminar la cuenta. Para AWS se añadiría un adaptador S3
-(`COMPRAS_STORAGE=s3`) sin tocar los casos de uso.
+(`BILLING_STORAGE=s3`) sin tocar los casos de uso.
 
 ## Identidad (Keycloak)
 
@@ -53,6 +53,6 @@ Configuración del servidor en [infraestructura/keycloak.md](../infraestructura/
 
 ## Cifrado de secretos (`SecretCipher`)
 
-`FernetCipher(COMPRAS_SECRET_KEY)` (`infrastructure/crypto/fernet.py`): AES-128-CBC + HMAC-SHA256.
+`FernetCipher(BILLING_SECRET_KEY)` (`infrastructure/crypto/fernet.py`): AES-128-CBC + HMAC-SHA256.
 Cifra las contraseñas de los buzones IMAP. Una clave ausente o inválida lanza `CipherError` (la
 pestaña Correo bancario lo indica); cambiarla deja ilegibles las contraseñas guardadas.

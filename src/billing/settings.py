@@ -16,20 +16,20 @@ env = os.environ.get
 
 # --- Archivos -----------------------------------------------------------------
 
-DATA_DIR = Path(env("COMPRAS_DATA_DIR", Path.cwd() / "data"))
+DATA_DIR = Path(env("BILLING_DATA_DIR", Path.cwd() / "data"))
 UPLOAD_DIR = DATA_DIR / "uploads"
 # Adaptador de archivos (billing/bootstrap.py): "local" (disco). En AWS: "s3".
-STORAGE_BACKEND = env("COMPRAS_STORAGE", "local")
+STORAGE_BACKEND = env("BILLING_STORAGE", "local")
 
 # --- Base de datos ------------------------------------------------------------
 
 # Adaptador de persistencia (billing/bootstrap.py). "sql" = SQLAlchemy con cualquier
 # URL que soporte (hoy PostgreSQL). Otros motores se añaden como nuevos adaptadores.
-PERSISTENCE_BACKEND = env("COMPRAS_PERSISTENCE", "sql")
+PERSISTENCE_BACKEND = env("BILLING_PERSISTENCE", "sql")
 
 
 def _database_url() -> str:
-    if url := env("COMPRAS_DATABASE_URL"):
+    if url := env("BILLING_DATABASE_URL"):
         return url
     # Fuera de Docker se conecta al Postgres del compose publicado en DB_PORT.
     user = env("POSTGRES_USER", "compras")
@@ -60,7 +60,7 @@ APP_PUBLIC_URL = env("AUTH_REDIRECT_URI", "http://localhost:8501/oauth2callback"
 # --- Correo saliente -----------------------------------------------------------
 
 # Adaptador (billing/bootstrap.py): "smtp" o "console" (solo escribe en el log).
-MAILER_BACKEND = env("COMPRAS_MAILER") or "smtp"
+MAILER_BACKEND = env("BILLING_MAILER") or "smtp"
 # Fuera de Docker se usa el SMTP de Mailpit publicado en el host (MAILPIT_SMTP_PORT).
 SMTP_HOST = env("SMTP_HOST") or "localhost"
 SMTP_PORT = int(env("SMTP_PORT") or env("MAILPIT_SMTP_PORT", "1025"))
@@ -73,14 +73,14 @@ SMTP_SSL = (env("SMTP_SSL") or "false").lower() == "true"
 # --- Secretos guardados ---------------------------------------------------------
 
 # Clave Fernet con la que se cifran las contraseñas de los buzones IMAP.
-SECRET_KEY = env("COMPRAS_SECRET_KEY", "")
+SECRET_KEY = env("BILLING_SECRET_KEY", "")
 
 # --- Agentes LLM ----------------------------------------------------------------
 
 # Proveedor y modelo por defecto de todos los agentes (el admin puede cambiarlos por
 # agente desde la app). Proveedor vacío = el primero con credenciales; "local" = sin LLM.
-LLM_PROVIDER = env("COMPRAS_LLM_PROVIDER", "")
-LLM_MODEL = env("COMPRAS_LLM_MODEL", "")
+LLM_PROVIDER = env("BILLING_LLM_PROVIDER", "")
+LLM_MODEL = env("BILLING_LLM_MODEL", "")
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", "")
 OPENAI_API_KEY = env("OPENAI_API_KEY", "")
 OPENAI_BASE_URL = env("OPENAI_BASE_URL", "")
@@ -89,13 +89,13 @@ GEMINI_API_KEY = env("GEMINI_API_KEY", "")
 OLLAMA_BASE_URL = env("OLLAMA_BASE_URL") or "http://localhost:11434/v1"
 # Razonamiento de los modelos de Ollama: none | low | medium | high (vacío = el del modelo).
 OLLAMA_REASONING_EFFORT = env("OLLAMA_REASONING_EFFORT", "none")
-LLM_TIMEOUT_SECONDS = float(env("COMPRAS_LLM_TIMEOUT") or "120")
+LLM_TIMEOUT_SECONDS = float(env("BILLING_LLM_TIMEOUT") or "120")
 
 # --- Notificaciones bancarias -----------------------------------------------------
 
 # Cada cuántos segundos sincroniza el worker los buzones IMAP.
-MAIL_SYNC_INTERVAL = int(env("COMPRAS_MAIL_SYNC_INTERVAL") or "120")
+MAIL_SYNC_INTERVAL = int(env("BILLING_MAIL_SYNC_INTERVAL") or "120")
 # Correos que se leen como máximo por buzón en cada sincronización.
-MAIL_SYNC_BATCH = int(env("COMPRAS_MAIL_SYNC_BATCH") or "50")
+MAIL_SYNC_BATCH = int(env("BILLING_MAIL_SYNC_BATCH") or "50")
 
-DEFAULT_CURRENCY = env("COMPRAS_MONEDA", "USD")
+DEFAULT_CURRENCY = env("BILLING_CURRENCY", "USD")

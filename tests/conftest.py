@@ -3,8 +3,8 @@ import tempfile
 
 # La configuración se lee al importar `app`, así que el entorno se fija antes.
 _tmp = tempfile.mkdtemp(prefix="compras-test-")
-os.environ["COMPRAS_DATA_DIR"] = _tmp
-os.environ["COMPRAS_EXTRACTOR"] = "local"
+os.environ["BILLING_DATA_DIR"] = _tmp
+os.environ["BILLING_EXTRACTOR"] = "local"
 
 import pytest  # noqa: E402
 

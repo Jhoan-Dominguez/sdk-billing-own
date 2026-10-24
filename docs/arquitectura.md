@@ -43,16 +43,16 @@ Es el único módulo que conoce las clases concretas. Expone fábricas cacheadas
 
 | Función | Devuelve | Elegido por |
 |---|---|---|
-| `persistence()`, `unit_of_work()`, `uow_factory()`, `init_database()` | Backend de persistencia y su unidad de trabajo | `COMPRAS_PERSISTENCE` (+ `COMPRAS_DATABASE_URL`) vía `infrastructure/persistence/registry.py` |
-| `file_storage()` | `FileStorage` | `COMPRAS_STORAGE` (`local`) |
+| `persistence()`, `unit_of_work()`, `uow_factory()`, `init_database()` | Backend de persistencia y su unidad de trabajo | `BILLING_PERSISTENCE` (+ `BILLING_DATABASE_URL`) vía `infrastructure/persistence/registry.py` |
+| `file_storage()` | `FileStorage` | `BILLING_STORAGE` (`local`) |
 | `llm_catalog()` | Registro de proveedores LLM | `infrastructure/llm/registry.py` |
-| `agent_choice(name)` | `(proveedor, modelo, personalizado)` del agente | tabla `agent_settings` o `COMPRAS_LLM_PROVIDER`/`COMPRAS_LLM_MODEL` |
+| `agent_choice(name)` | `(proveedor, modelo, personalizado)` del agente | tabla `agent_settings` o `BILLING_LLM_PROVIDER`/`BILLING_LLM_MODEL` |
 | `agent(name)` / `agent_for(name, provider, model)` | `Agent` listo para ejecutar (o `None` si es `local`) | lo anterior |
 | `invoice_extractor()` | `InvoiceExtractor` (`LLMInvoiceExtractor` con respaldo de regex) | agente `invoice` |
 | `bank_parser(uploaded=False)` | `BankNotificationParser` (reglas + agente `bank_notification`) | agente `bank_notification` |
-| `mailer()` | `Mailer` | `COMPRAS_MAILER` (`smtp`/`console`) |
+| `mailer()` | `Mailer` | `BILLING_MAILER` (`smtp`/`console`) |
 | `mailbox_gateway()` | `MailboxGateway` (IMAP) | — |
-| `secret_cipher()` | `SecretCipher` (Fernet) | `COMPRAS_SECRET_KEY` |
+| `secret_cipher()` | `SecretCipher` (Fernet) | `BILLING_SECRET_KEY` |
 | `account_admin(user_id)` | `AccountAdmin` (API admin de Keycloak) o `None` | `KEYCLOAK_ADMIN_API_SECRET` |
 | `account_actions()` | `AccountActions` (URLs `kc_action`) | Keycloak |
 | `reauthenticator()` | `Reauthenticator` (reautenticación con 2FA) | Keycloak |

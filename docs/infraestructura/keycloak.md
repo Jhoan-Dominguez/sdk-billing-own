@@ -44,7 +44,7 @@ sin ellos). `default-roles-compras` incluye `cliente`: toda cuenta nueva (regist
 ### Usuarios de desarrollo
 
 Ids fijos (coinciden con `scripts/seed_dev_data.py`), correo verificado y contraseñas de
-`COMPRAS_ADMIN_PASSWORD` / `COMPRAS_CLIENTE_PASSWORD`:
+`BILLING_ADMIN_PASSWORD` / `BILLING_CUSTOMER_PASSWORD`:
 
 | Id | Correo | Rol |
 |---|---|---|

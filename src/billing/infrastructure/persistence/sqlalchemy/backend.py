@@ -4,7 +4,7 @@ from billing.infrastructure.persistence.sqlalchemy.unit_of_work import SqlAlchem
 
 class SqlAlchemyBackend:
     """PersistenceBackend para cualquier motor de SQLAlchemy (la URL elige el motor:
-    PostgreSQL hoy; SQLite o MySQL cambiando solo COMPRAS_DATABASE_URL)."""
+    PostgreSQL hoy; SQLite o MySQL cambiando solo BILLING_DATABASE_URL)."""
 
     name = "sql"
 

@@ -44,15 +44,15 @@ El bloque `x-app-env` (ancla YAML `&app-env`) define una sola vez lo que necesit
 conexión a `db`, Keycloak interno (`http://keycloak:8080`) y público, secretos, SMTP de
 Mailpit, proveedores LLM (`OLLAMA_BASE_URL` apunta a `host.docker.internal`, resuelto con
 `extra_hosts: host-gateway`) e intervalo de sincronización. La `app` añade
-`AUTH_COOKIE_SECRET`; el `worker` añade `COMPRAS_SKIP_SECRETS=1`.
+`AUTH_COOKIE_SECRET`; el `worker` añade `BILLING_SKIP_SECRETS=1`.
 
 ## Imagen de la app (`infra/docker/app/`)
 
-- `python:3.13-slim`, usuario sin privilegios `app` (uid 1000), `COMPRAS_DATA_DIR=/app/data`.
+- `python:3.13-slim`, usuario sin privilegios `app` (uid 1000), `BILLING_DATA_DIR=/app/data`.
 - `pip install ".[llm]"`: el paquete con los SDK de Anthropic, OpenAI y Gemini.
 - Copia `.streamlit/config.toml` (tema), `scripts/` y el `entrypoint.sh`.
 - `entrypoint.sh` genera `.streamlit/secrets.toml` con `scripts/write_secrets.py` (salvo
-  `COMPRAS_SKIP_SECRETS=1`) y ejecuta el comando: `python -m billing --server.address=0.0.0.0 --server.port=8501`.
+  `BILLING_SKIP_SECRETS=1`) y ejecuta el comando: `python -m billing --server.address=0.0.0.0 --server.port=8501`.
 
 ## Imagen de Keycloak (`infra/docker/keycloak/`)
 

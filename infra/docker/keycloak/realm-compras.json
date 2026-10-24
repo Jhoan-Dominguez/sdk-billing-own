@@ -133,7 +133,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "${COMPRAS_ADMIN_PASSWORD}",
+          "value": "${BILLING_ADMIN_PASSWORD}",
           "temporary": false
         }
       ]
@@ -152,7 +152,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "${COMPRAS_CLIENTE_PASSWORD}",
+          "value": "${BILLING_CUSTOMER_PASSWORD}",
           "temporary": false
         }
       ]
@@ -171,7 +171,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "${COMPRAS_CLIENTE_PASSWORD}",
+          "value": "${BILLING_CUSTOMER_PASSWORD}",
           "temporary": false
         }
       ]
@@ -190,7 +190,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "${COMPRAS_CLIENTE_PASSWORD}",
+          "value": "${BILLING_CUSTOMER_PASSWORD}",
           "temporary": false
         }
       ]
@@ -209,7 +209,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "${COMPRAS_CLIENTE_PASSWORD}",
+          "value": "${BILLING_CUSTOMER_PASSWORD}",
           "temporary": false
         }
       ]

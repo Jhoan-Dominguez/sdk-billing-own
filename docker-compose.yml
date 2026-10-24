@@ -11,17 +11,17 @@ x-app-env: &app-env
   POSTGRES_DB: ${POSTGRES_DB:-compras}
   POSTGRES_HOST: db
   POSTGRES_PORT: "5432"
-  COMPRAS_PERSISTENCE: ${COMPRAS_PERSISTENCE:-sql}
+  BILLING_PERSISTENCE: ${BILLING_PERSISTENCE:-sql}
   AUTH_REDIRECT_URI: http://localhost:${APP_PORT:-8502}/oauth2callback
   KEYCLOAK_CLIENT_ID: compras-app
   KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
   KEYCLOAK_INTERNAL_URL: http://keycloak:8080
   KEYCLOAK_PUBLIC_URL: http://localhost:${KEYCLOAK_PORT:-8180}
   KEYCLOAK_ADMIN_API_SECRET: ${KEYCLOAK_ADMIN_API_SECRET}
-  COMPRAS_SECRET_KEY: ${COMPRAS_SECRET_KEY:?define COMPRAS_SECRET_KEY en .env}
-  COMPRAS_MONEDA: ${COMPRAS_MONEDA:-USD}
+  BILLING_SECRET_KEY: ${BILLING_SECRET_KEY:?define BILLING_SECRET_KEY en .env}
+  BILLING_CURRENCY: ${BILLING_CURRENCY:-USD}
   # Correo saliente (confirmaciones de seguridad).
-  COMPRAS_MAILER: ${COMPRAS_MAILER:-smtp}
+  BILLING_MAILER: ${BILLING_MAILER:-smtp}
   SMTP_HOST: ${SMTP_HOST:-mailpit}
   SMTP_PORT: ${SMTP_PORT:-1025}
   SMTP_FROM: ${SMTP_FROM:-no-reply@compras.example.com}
@@ -30,15 +30,15 @@ x-app-env: &app-env
   SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
   SMTP_SSL: ${SMTP_SSL:-false}
   # Agentes LLM (ver docs/servicios/agentes.md).
-  COMPRAS_LLM_PROVIDER: ${COMPRAS_LLM_PROVIDER:-}
-  COMPRAS_LLM_MODEL: ${COMPRAS_LLM_MODEL:-}
+  BILLING_LLM_PROVIDER: ${BILLING_LLM_PROVIDER:-}
+  BILLING_LLM_MODEL: ${BILLING_LLM_MODEL:-}
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}
   OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
   # Buzones IMAP de notificaciones bancarias.
-  COMPRAS_MAIL_SYNC_INTERVAL: ${COMPRAS_MAIL_SYNC_INTERVAL:-120}
+  BILLING_MAIL_SYNC_INTERVAL: ${BILLING_MAIL_SYNC_INTERVAL:-120}
 
 services:
   db:
@@ -83,8 +83,8 @@ services:
       # Variables usadas por realm-compras.json al importarlo (solo la primera vez).
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:?define KEYCLOAK_CLIENT_SECRET en .env}
       KEYCLOAK_ADMIN_API_SECRET: ${KEYCLOAK_ADMIN_API_SECRET:?define KEYCLOAK_ADMIN_API_SECRET en .env}
-      COMPRAS_ADMIN_PASSWORD: ${COMPRAS_ADMIN_PASSWORD:?define COMPRAS_ADMIN_PASSWORD en .env}
-      COMPRAS_CLIENTE_PASSWORD: ${COMPRAS_CLIENTE_PASSWORD:?define COMPRAS_CLIENTE_PASSWORD en .env}
+      BILLING_ADMIN_PASSWORD: ${BILLING_ADMIN_PASSWORD:?define BILLING_ADMIN_PASSWORD en .env}
+      BILLING_CUSTOMER_PASSWORD: ${BILLING_CUSTOMER_PASSWORD:?define BILLING_CUSTOMER_PASSWORD en .env}
       APP_PORT: ${APP_PORT:-8502}
       # Servidor SMTP para verificar correos y recuperar contraseñas (realm smtpServer).
       SMTP_HOST: ${SMTP_HOST:-mailpit}
@@ -139,7 +139,7 @@ services:
     command: ["python", "-m", "billing.worker"]
     environment:
       <<: *app-env
-      COMPRAS_SKIP_SECRETS: "1"
+      BILLING_SKIP_SECRETS: "1"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

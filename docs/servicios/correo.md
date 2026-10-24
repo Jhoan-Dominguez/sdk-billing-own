@@ -25,7 +25,7 @@ diseño común (`rendering.py` + `templates/layout.html`): cabecera verde «Regi
 tarjeta blanca, botón de acción, enlace copiable y pie. El HTML usa estilos en línea para que se
 vea igual en cualquier cliente de correo, y escapa todo el texto.
 
-| `COMPRAS_MAILER` | Adaptador | Uso |
+| `BILLING_MAILER` | Adaptador | Uso |
 |---|---|---|
 | `smtp` | `SmtpMailer(host, port, sender, user, password, starttls, use_ssl)` | Mailpit en desarrollo; SES u otro SMTP en producción. Añade `Message-ID`, autentica si hay usuario, soporta STARTTLS y SSL implícito |
 | `console` | `ConsoleMailer` | Escribe el correo en el log (y lo guarda en `.sent`); útil sin servidor |

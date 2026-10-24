@@ -1,7 +1,7 @@
 """Entorno de Alembic. La metadata es el esquema de tables.py.
 
 database.migrate() pasa su propia conexión; desde la CLI (`alembic upgrade head`)
-se conecta con COMPRAS_DATABASE_URL / POSTGRES_* (billing.settings).
+se conecta con BILLING_DATABASE_URL / POSTGRES_* (billing.settings).
 """
 
 from alembic import context

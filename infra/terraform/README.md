@@ -10,7 +10,7 @@ Internet ── ALB (HTTPS, ACM) ──┬── app.<dominio>  → ECS Fargate:
                                └── auth.<dominio> → ECS Fargate: keycloak (infra/docker/keycloak)
                                          │
               subredes privadas ─────────┼── RDS PostgreSQL (bases compras y keycloak)
-                                         ├── S3 (facturas y avatares: COMPRAS_STORAGE=s3)
+                                         ├── S3 (facturas y avatares: BILLING_STORAGE=s3)
                                          └── Secrets Manager (secretos de .env)
 ECR: una imagen por servicio · CloudWatch Logs: logs de las tareas
 ```

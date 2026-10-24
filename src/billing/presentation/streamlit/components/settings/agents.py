@@ -56,7 +56,7 @@ def render(ctx: SettingsContext) -> None:
         st.subheader("Proveedores")
         st.caption(
             "Las credenciales se configuran en `.env` (no se guardan en la base). "
-            f"Proveedor por defecto: **{_label(default, status)}** (`COMPRAS_LLM_PROVIDER`)."
+            f"Proveedor por defecto: **{_label(default, status)}** (`BILLING_LLM_PROVIDER`)."
         )
         st.dataframe(
             pd.DataFrame(

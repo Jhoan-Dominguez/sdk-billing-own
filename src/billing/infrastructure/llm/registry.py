@@ -126,7 +126,7 @@ PROVIDERS: dict[str, ProviderSpec] = {
 
 
 def default_provider() -> str:
-    """COMPRAS_LLM_PROVIDER, o el primero con credenciales en la nube, o `local`.
+    """BILLING_LLM_PROVIDER, o el primero con credenciales en la nube, o `local`.
 
     Ollama no se elige solo (no tiene credenciales): hay que pedirlo explícitamente.
     """

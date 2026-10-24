@@ -61,7 +61,7 @@ def file_storage() -> FileStorage:
         from billing.infrastructure.storage.local import LocalFileStorage
 
         return LocalFileStorage(settings.UPLOAD_DIR)
-    raise ConfigurationError(f"COMPRAS_STORAGE desconocido: {settings.STORAGE_BACKEND!r}")
+    raise ConfigurationError(f"BILLING_STORAGE desconocido: {settings.STORAGE_BACKEND!r}")
 
 
 # --- Agentes LLM --------------------------------------------------------------
@@ -147,7 +147,7 @@ def mailer() -> Mailer:
         from billing.infrastructure.mail.console import ConsoleMailer
 
         return ConsoleMailer()
-    raise ConfigurationError(f"COMPRAS_MAILER desconocido: {settings.MAILER_BACKEND!r}")
+    raise ConfigurationError(f"BILLING_MAILER desconocido: {settings.MAILER_BACKEND!r}")
 
 
 @cache

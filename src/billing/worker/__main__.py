@@ -2,7 +2,7 @@
 notificaciones bancarias de todos los usuarios.
 
 Opciones: `--once` (una pasada y termina) e `--interval N` (segundos; por defecto
-COMPRAS_MAIL_SYNC_INTERVAL). Toca /tmp/worker-alive tras cada pasada para el
+BILLING_MAIL_SYNC_INTERVAL). Toca /tmp/worker-alive tras cada pasada para el
 healthcheck de Docker.
 """
 

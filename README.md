@@ -130,9 +130,9 @@ docs/                  Documentación técnica detallada
 
 Cada servicio se cambia desde la configuración:
 
-- **Base de datos:** `COMPRAS_PERSISTENCE` y `COMPRAS_DATABASE_URL`.
-- **Agente LLM:** desde la app o con `COMPRAS_LLM_PROVIDER`.
-- **Correo:** `COMPRAS_MAILER` y `SMTP_*`.
+- **Base de datos:** `BILLING_PERSISTENCE` y `BILLING_DATABASE_URL`.
+- **Agente LLM:** desde la app o con `BILLING_LLM_PROVIDER`.
+- **Correo:** `BILLING_MAILER` y `SMTP_*`.
 
 Cuando hace falta una implementación nueva, se crea su adaptador y se registra en la carpeta de su servicio.
 
@@ -145,7 +145,7 @@ Cuando hace falta una implementación nueva, se crea su adaptador y se registra 
 
 Todo se lee de `.env` (plantilla en `.env.example`; `make env` la crea):
 - Puertos y credenciales de PostgreSQL, pgAdmin y Keycloak.
-- Secretos OIDC y la clave de cifrado `COMPRAS_SECRET_KEY`.
+- Secretos OIDC y la clave de cifrado `BILLING_SECRET_KEY`.
 - SMTP y proveedores LLM.
 
 Referencia completa en [docs/configuracion.md](docs/configuracion.md).
