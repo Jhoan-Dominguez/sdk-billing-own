@@ -2,11 +2,17 @@ from datetime import datetime
 
 import streamlit as st
 
-from compras import bootstrap, settings
+from compras import bootstrap
 from compras.application import imports
+from compras.application.agents.registry import INVOICE
 from compras.domain.errors import UnsupportedFile, ValidationError
 from compras.domain.periods import month_key
-from compras.presentation.streamlit.components.files import draft_warnings, show_attachment
+from compras.presentation.streamlit.components.files import (
+    draft_label,
+    draft_warnings,
+    extraction_info,
+    show_attachment,
+)
 from compras.presentation.streamlit.components.forms import form_options, purchase_form
 from compras.presentation.streamlit.components.layout import flash
 from compras.presentation.streamlit.components.session import current_viewer
@@ -15,18 +21,30 @@ from compras.presentation.streamlit.components.session import current_viewer
 viewer = current_viewer()
 
 st.title("Importar facturas")
+st.caption(
+    "Sube fotos o PDFs de facturas y correos (.eml) de compras o de alertas de tu banco. "
+    "Las alertas de los buzones conectados en Configuración → Correo bancario llegan aquí solas."
+)
 
 
 def process(files: list[tuple[str, str | None, bytes]]) -> None:
     """Guarda y extrae cada archivo; deja seleccionado el primero para revisarlo."""
     created, errors = [], []
     storage, extractor = bootstrap.file_storage(), bootstrap.invoice_extractor()
+    bank_parser = bootstrap.bank_parser(uploaded=True)
     with bootstrap.unit_of_work() as uow:
         for name, content_type, raw in files:
             with st.spinner(f"Extrayendo datos de {name}…"):
                 try:
                     att = imports.store_upload(
-                        uow, storage, extractor, name, content_type, raw, owner_id=viewer.user_id
+                        uow,
+                        storage,
+                        extractor,
+                        name,
+                        content_type,
+                        raw,
+                        owner_id=viewer.user_id,
+                        bank_parser=bank_parser,
                     )
                     created.append(att.id)
                 except UnsupportedFile as e:
@@ -59,10 +77,12 @@ with camera_tab:
 for error in st.session_state.pop("upload_errors", []):
     st.error(error, icon=":material/error:")
 
-if settings.EXTRACTOR == "local":
+provider, model, _ = bootstrap.agent_choice(INVOICE)
+if provider == "local":
     st.info(
-        "Extractor **local**: solo lee el texto de PDFs digitales y emails. "
-        "Configura `ANTHROPIC_API_KEY` para leer fotos y PDFs escaneados con Claude.",
+        "Sin agente LLM: solo se lee el texto de PDFs digitales y correos con reglas locales. "
+        "Un administrador puede elegir un proveedor en Configuración → Agentes IA para leer fotos "
+        "y PDFs escaneados.",
         icon=":material/info:",
     )
 
@@ -76,10 +96,7 @@ with bootstrap.unit_of_work() as uow:
         st.stop()
 
     ids = [d.id for d in drafts]
-    labels = {
-        d.id: f"#{d.id} · {d.original_name} · {(d.extracted or {}).get('vendor') or 'sin comercio detectado'}"
-        for d in drafts
-    }
+    labels = {d.id: draft_label(d) for d in drafts}
     if st.session_state.get("draft_id") not in ids:
         st.session_state["draft_id"] = ids[0]
     draft_id = st.selectbox("Archivo", ids, format_func=labels.get, key="draft_id")
@@ -89,6 +106,7 @@ with bootstrap.unit_of_work() as uow:
 
     preview, form = st.columns([2, 3], gap="large")
     with preview:
+        extraction_info(att)
         draft_warnings(uow, att)
         show_attachment(att)
         if st.button("Descartar archivo", icon=":material/delete:"):
