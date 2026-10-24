@@ -13,7 +13,8 @@ WORKDIR /app
 # Primero solo lo necesario para instalar dependencias (capa reutilizable en caché).
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN pip install .
+# Con los SDKs de todos los proveedores LLM (extra "llm"); quita los que no uses.
+RUN pip install ".[llm]"
 
 RUN useradd --create-home --uid 1000 app \
     && mkdir -p /app/data/uploads /app/.streamlit \
