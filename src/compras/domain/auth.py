@@ -16,7 +16,7 @@ ROLES = (ADMIN, CLIENTE)
 
 ROLE_LABELS = {ADMIN: "Administrador", CLIENTE: "Cliente"}
 
-# Páginas visibles por rol (rutas de `app_pages/`).
+# Páginas visibles por rol (presentation/streamlit/pages/).
 PAGES_BY_ROLE: dict[str, tuple[str, ...]] = {
     ADMIN: ("resumen", "tabla_resumen", "importar", "comparativa", "configuracion"),
     CLIENTE: ("resumen", "tabla_resumen", "importar", "configuracion"),
@@ -32,9 +32,11 @@ MANAGES_GLOBAL_CATEGORIES_ROLES = frozenset({ADMIN})
 # Roles que no pueden eliminar su propia cuenta desde la app (evita quedarse sin admin).
 CANNOT_SELF_DELETE_ROLES = frozenset({ADMIN})
 
-# Las acciones sensibles (desactivar 2FA, eliminar la cuenta) exigen haber iniciado
-# sesión hace poco: una sesión olvidada abierta no basta para hacerlas.
-RECENT_AUTH_SECONDS = 10 * 60
+# Roles que eligen el proveedor y el modelo LLM de los agentes (afecta a todos).
+MANAGES_AGENTS_ROLES = frozenset({ADMIN})
+
+# Las acciones sensibles de la cuenta (contraseña, 2FA, eliminarla) exigen confirmar
+# por correo y, si hay 2FA, el código: ver domain/security.py.
 
 
 @dataclass(frozen=True)
@@ -73,11 +75,9 @@ class Viewer:
     def can_delete_own_account(self) -> bool:
         return self.role not in CANNOT_SELF_DELETE_ROLES
 
-
-def recently_authenticated(claims: Mapping, now: float, max_age: int = RECENT_AUTH_SECONDS) -> bool:
-    """True si el último inicio de sesión (claim `auth_time` del ID token) es reciente."""
-    auth_time = claims.get("auth_time")
-    return isinstance(auth_time, int | float) and now - auth_time <= max_age
+    @property
+    def manages_agents(self) -> bool:
+        return self.role in MANAGES_AGENTS_ROLES
 
 
 def roles_from_claims(claims: Mapping) -> set[str]:
