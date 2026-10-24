@@ -16,3 +16,5 @@ backend.hcl
 crash.log
 *.egg-info/
 build/
+# Instrucciones locales de Claude Code (no se versionan)
+CLAUDE.md
