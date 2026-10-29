@@ -5,7 +5,10 @@ from sqlalchemy.orm import registry, relationship
 from billing.domain.models import (
     AgentSetting,
     Attachment,
+    AuditEntry,
     Category,
+    ForecastModel,
+    ForecastTrainingRun,
     MailboxConnection,
     Purchase,
     PurchaseItem,
@@ -43,4 +46,7 @@ def start_mappers() -> None:
     mapper_registry.map_imperatively(SecurityConfirmation, tables.security_confirmations)
     mapper_registry.map_imperatively(AgentSetting, tables.agent_settings)
     mapper_registry.map_imperatively(MailboxConnection, tables.mailbox_connections)
+    mapper_registry.map_imperatively(AuditEntry, tables.admin_audit_log)
+    mapper_registry.map_imperatively(ForecastTrainingRun, tables.ml_training_runs)
+    mapper_registry.map_imperatively(ForecastModel, tables.ml_models)
     _mapped = True

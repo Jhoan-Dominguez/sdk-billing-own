@@ -12,7 +12,18 @@ from datetime import datetime
 from billing.domain.catalog import DEFAULT_CATEGORIES
 from billing.domain.models import Category
 
-COLLECTIONS = ("users", "purchases", "attachments", "categories", "confirmations", "agent_settings", "mailboxes")
+COLLECTIONS = (
+    "users",
+    "purchases",
+    "attachments",
+    "categories",
+    "confirmations",
+    "agent_settings",
+    "mailboxes",
+    "audit_log",
+    "forecast_runs",
+    "forecast_models",
+)
 
 
 @dataclass

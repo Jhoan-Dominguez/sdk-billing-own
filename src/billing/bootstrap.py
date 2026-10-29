@@ -19,6 +19,7 @@ from billing.domain.ports.identity import AccountActions, AccountAdmin, Reauthen
 from billing.domain.ports.mail import MailboxGateway, Mailer
 from billing.domain.ports.repositories import UnitOfWork
 from billing.domain.ports.storage import FileStorage
+from billing.domain.schema import SchemaInfo
 
 
 class ConfigurationError(RuntimeError):
@@ -50,6 +51,11 @@ def uow_factory() -> Callable[[], UnitOfWork]:
 def init_database() -> None:
     """Prepara el esquema (migraciones) del motor de persistencia elegido."""
     persistence().init_schema()
+
+
+def describe_schema() -> SchemaInfo | None:
+    """Tablas y migraciones del motor elegido (None si no tiene esquema, p. ej. en memoria)."""
+    return persistence().describe_schema()
 
 
 # --- Archivos -----------------------------------------------------------------

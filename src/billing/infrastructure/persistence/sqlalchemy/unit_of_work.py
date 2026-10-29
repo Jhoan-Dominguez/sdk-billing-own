@@ -3,7 +3,10 @@ from sqlalchemy.orm import Session, sessionmaker
 from billing.infrastructure.persistence.sqlalchemy.repositories import (
     SqlAgentSettingRepository,
     SqlAttachmentRepository,
+    SqlAuditRepository,
     SqlCategoryRepository,
+    SqlForecastModelRepository,
+    SqlForecastRunRepository,
     SqlMailboxRepository,
     SqlPurchaseRepository,
     SqlSecurityConfirmationRepository,
@@ -26,6 +29,9 @@ class SqlAlchemyUnitOfWork:
         self.confirmations = SqlSecurityConfirmationRepository(self.session)
         self.agent_settings = SqlAgentSettingRepository(self.session)
         self.mailboxes = SqlMailboxRepository(self.session)
+        self.audit_log = SqlAuditRepository(self.session)
+        self.forecast_models = SqlForecastModelRepository(self.session)
+        self.forecast_runs = SqlForecastRunRepository(self.session)
         return self
 
     def __exit__(self, *exc) -> None:

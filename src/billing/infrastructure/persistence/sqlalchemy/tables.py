@@ -35,6 +35,7 @@ users = Table(
     Column("preferred_currency", String(3)),
     Column("default_payment_method", String(50)),
     Column("default_category", String(50)),
+    Column("disabled_at", DateTime),
 )
 
 purchases = Table(
@@ -180,5 +181,55 @@ mailbox_connections = Table(
     Column("last_sync_at", DateTime),
     Column("last_error", Text),
     Column("imported_count", Integer, nullable=False),
+    Column("created_at", DateTime, nullable=False, server_default=func.now()),
+)
+
+# Sin claves foráneas: la auditoría sobrevive al borrado de quien actuó y del afectado.
+admin_audit_log = Table(
+    "admin_audit_log",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("actor_id", String(64)),
+    Column("actor_label", String(254), nullable=False),
+    Column("action", String(40), nullable=False, index=True),
+    Column("target_user_id", String(64), index=True),
+    Column("target_label", String(254)),
+    Column("details", JSON),
+    Column("created_at", DateTime, nullable=False, server_default=func.now(), index=True),
+)
+
+ml_training_runs = Table(
+    "ml_training_runs",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("scope", String(20), nullable=False),
+    Column("owner_id", String(64), ForeignKey("users.id", ondelete="CASCADE"), index=True),
+    Column("algorithm", String(50), nullable=False),
+    Column("params", JSON),
+    Column("data_fingerprint", String(64)),
+    Column("n_samples", Integer),
+    Column("status", String(20), nullable=False),
+    Column("error", Text),
+    Column("finished_at", DateTime),
+    Column("created_at", DateTime, nullable=False, server_default=func.now()),
+)
+
+ml_models = Table(
+    "ml_models",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("scope", String(20), nullable=False, index=True),
+    Column("owner_id", String(64), ForeignKey("users.id", ondelete="CASCADE"), index=True),
+    Column("algorithm", String(50), nullable=False),
+    Column("version", String(50), nullable=False),
+    Column("run_id", Integer, ForeignKey("ml_training_runs.id", ondelete="SET NULL")),
+    Column("artifact_key", String(255)),
+    Column("params", JSON),
+    Column("features", JSON),
+    Column("metrics", JSON),
+    Column("status", String(20), nullable=False),
+    Column("train_from", Date),
+    Column("train_to", Date),
+    Column("n_samples", Integer),
     Column("created_at", DateTime, nullable=False, server_default=func.now()),
 )

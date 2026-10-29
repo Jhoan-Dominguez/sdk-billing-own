@@ -1,3 +1,5 @@
+from billing.domain.schema import SchemaInfo
+from billing.infrastructure.persistence.sqlalchemy import schema
 from billing.infrastructure.persistence.sqlalchemy.database import make_engine, make_session_factory, migrate
 from billing.infrastructure.persistence.sqlalchemy.unit_of_work import SqlAlchemyUnitOfWork
 
@@ -17,6 +19,9 @@ class SqlAlchemyBackend:
 
     def init_schema(self) -> None:
         migrate(self.engine)
+
+    def describe_schema(self) -> SchemaInfo:
+        return schema.describe(self.engine)
 
 
 def create(settings) -> SqlAlchemyBackend:

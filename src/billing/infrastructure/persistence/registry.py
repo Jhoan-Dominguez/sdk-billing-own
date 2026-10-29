@@ -10,6 +10,7 @@ import importlib
 from typing import Protocol
 
 from billing.domain.ports.repositories import UnitOfWork
+from billing.domain.schema import SchemaInfo
 
 
 class PersistenceBackend(Protocol):
@@ -19,6 +20,10 @@ class PersistenceBackend(Protocol):
 
     def init_schema(self) -> None:
         """Crea o migra el esquema (idempotente)."""
+        ...
+
+    def describe_schema(self) -> SchemaInfo | None:
+        """Tablas, columnas, relaciones y migraciones; None si el motor no tiene esquema."""
         ...
 
 

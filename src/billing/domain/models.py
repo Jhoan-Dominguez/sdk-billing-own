@@ -13,6 +13,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from billing.domain.catalog import DOCUMENT_INVOICE, FALLBACK_CATEGORY, SOURCE_MANUAL
+from billing.domain.forecasting import MODEL_ACTIVE, RUN_RUNNING
 
 
 @dataclass(eq=False, kw_only=True)
@@ -30,12 +31,19 @@ class User:
     preferred_currency: str | None = None
     default_payment_method: str | None = None
     default_category: str | None = None
+    # Bloqueada por un administrador (además de deshabilitada en el proveedor de identidad):
+    # la app expulsa en la siguiente interacción a quien tenga una sesión abierta.
+    disabled_at: datetime | None = None
     created_at: datetime = field(init=False)
     last_login_at: datetime = field(init=False)
 
     @property
     def display_name(self) -> str:
         return self.name or self.username
+
+    @property
+    def is_disabled(self) -> bool:
+        return self.disabled_at is not None
 
 
 @dataclass(eq=False, kw_only=True)
@@ -212,3 +220,67 @@ class MailboxConnection:
     @property
     def senders(self) -> list[str]:
         return [s.strip().lower() for s in self.sender_filter.split(",") if s.strip()]
+
+
+@dataclass(eq=False, kw_only=True)
+class AuditEntry:
+    """Acción de un administrador (domain/admin.py).
+
+    Sin claves foráneas: la entrada debe sobrevivir al borrado de quien actuó y del
+    usuario afectado, por eso guarda también sus etiquetas (nombre o correo) de ese momento.
+    """
+
+    actor_id: str | None
+    actor_label: str
+    action: str
+    target_user_id: str | None = None
+    target_label: str | None = None
+    details: dict | None = None
+    id: int = field(init=False)
+    created_at: datetime = field(init=False)
+
+
+@dataclass(eq=False, kw_only=True)
+class ForecastTrainingRun:
+    """Un entrenamiento de un modelo de predicción (domain/forecasting.py).
+
+    No guarda los datos de entrenamiento (se derivan de las compras), sino su huella para
+    poder reproducirlo: rango, número de muestras y hash de los datos.
+    """
+
+    scope: str  # global | user
+    algorithm: str
+    owner_id: str | None = None  # el cliente si scope = user
+    params: dict | None = None
+    data_fingerprint: str | None = None
+    n_samples: int | None = None
+    status: str = RUN_RUNNING
+    error: str | None = None
+    finished_at: datetime | None = None
+    id: int = field(init=False)
+    created_at: datetime = field(init=False)  # inicio
+
+
+@dataclass(eq=False, kw_only=True)
+class ForecastModel:
+    """Un modelo de predicción entrenado y sus métricas.
+
+    El general se guarda como archivo en el FileStorage (`artifact_key`); el de cada
+    cliente son unos pocos parámetros (`params`) en la base.
+    """
+
+    scope: str
+    algorithm: str
+    version: str
+    owner_id: str | None = None
+    run_id: int | None = None
+    artifact_key: str | None = None
+    params: dict | None = None
+    features: list | None = None  # nombres de las variables de entrada
+    metrics: dict | None = None  # ver forecasting.METRIC_*
+    status: str = MODEL_ACTIVE
+    train_from: date | None = None
+    train_to: date | None = None
+    n_samples: int | None = None
+    id: int = field(init=False)
+    created_at: datetime = field(init=False)  # fecha de entrenamiento

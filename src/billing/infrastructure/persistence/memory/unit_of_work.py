@@ -3,8 +3,11 @@ from datetime import datetime
 from billing.infrastructure.persistence.memory.repositories import (
     MemoryAgentSettingRepository,
     MemoryAttachmentRepository,
+    MemoryAuditRepository,
     MemoryCategoryRepository,
     MemoryConfirmationRepository,
+    MemoryForecastModelRepository,
+    MemoryForecastRunRepository,
     MemoryMailboxRepository,
     MemoryPurchaseRepository,
     MemoryUserRepository,
@@ -38,6 +41,9 @@ class MemoryUnitOfWork:
         self.confirmations = MemoryConfirmationRepository(self._state, self._pending)
         self.agent_settings = MemoryAgentSettingRepository(self._state, self._pending)
         self.mailboxes = MemoryMailboxRepository(self._state, self._pending)
+        self.audit_log = MemoryAuditRepository(self._state, self._pending)
+        self.forecast_models = MemoryForecastModelRepository(self._state, self._pending)
+        self.forecast_runs = MemoryForecastRunRepository(self._state, self._pending)
 
     def _assign(self, collection: str, obj) -> None:
         now = datetime.now()

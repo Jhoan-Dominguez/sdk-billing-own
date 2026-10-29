@@ -1,7 +1,8 @@
 """Repositorios en memoria: implementan billing.domain.ports.repositories."""
 
+from collections import Counter
 from collections.abc import Iterable
-from datetime import date
+from datetime import date, datetime
 
 from billing.infrastructure.persistence.memory.store import State
 
@@ -38,7 +39,7 @@ class MemoryUserRepository(_Repository):
     def delete(self, user) -> None:
         super().delete(user)
         # ON DELETE CASCADE / SET NULL del esquema SQL.
-        for name in ("categories", "confirmations", "mailboxes"):
+        for name in ("categories", "confirmations", "mailboxes", "forecast_runs", "forecast_models"):
             rows = self.state.rows[name]
             for key in [
                 k for k, row in rows.items() if getattr(row, "owner_id", getattr(row, "user_id", None)) == user.id
@@ -47,6 +48,10 @@ class MemoryUserRepository(_Repository):
         for setting in self.state.rows["agent_settings"].values():
             if setting.updated_by == user.id:
                 setting.updated_by = None
+        runs = self.state.rows["forecast_runs"]
+        for model in self.state.rows["forecast_models"].values():
+            if model.run_id is not None and model.run_id not in runs:
+                model.run_id = None
 
     def list(self, role: str | None = None):
         users = [u for u in self._all() if role is None or u.role == role]
@@ -76,6 +81,13 @@ class MemoryPurchaseRepository(_Repository):
 
     def by_owner(self, owner_id: str):
         return self._visible(owner_id)
+
+    def count_by_owner(self) -> dict[str, int]:
+        return dict(Counter(p.owner_id for p in self._all()))
+
+    def monthly_count_by_source(self, since: date) -> list[tuple[str, str, int]]:
+        counts = Counter((f"{p.created_at:%Y-%m}", p.source) for p in self._all() if p.created_at.date() >= since)
+        return [(month, source, n) for (month, source), n in sorted(counts.items())]
 
     def count_by_category(self, *, owner_id: str | None) -> dict[str, int]:
         counts: dict[str, int] = {}
@@ -107,6 +119,19 @@ class MemoryAttachmentRepository(_Repository):
 
     def by_message_id(self, message_id: str, *, owner_id: str):
         return next((a for a in self._all() if a.message_id == message_id and a.owner_id == owner_id), None)
+
+    def usage_by_owner(self) -> dict[str, dict[str, int]]:
+        usage: dict[str, dict[str, int]] = {}
+        for att in self._all():
+            row = usage.setdefault(att.owner_id, {"files": 0, "bytes": 0, "drafts": 0})
+            row["files"] += 1
+            row["bytes"] += att.size
+            row["drafts"] += att.purchase_id is None
+        return usage
+
+    def extraction_log(self, since: datetime):
+        rows = sorted((a for a in self._all() if a.uploaded_at >= since), key=lambda a: a.uploaded_at)
+        return [(a.uploaded_at, a.extraction_meta, a.extraction_error is not None) for a in rows]
 
 
 class MemoryCategoryRepository(_Repository):
@@ -166,3 +191,38 @@ class MemoryMailboxRepository(_Repository):
 
     def enabled(self):
         return sorted((m for m in self._all() if m.enabled), key=lambda m: m.id)
+
+    def all(self):
+        return sorted(self._all(), key=lambda m: m.id)
+
+
+class MemoryAuditRepository(_Repository):
+    collection = "audit_log"
+
+    def list(self, *, limit: int = 500, action: str | None = None, target_user_id: str | None = None):
+        rows = [
+            e
+            for e in self._all()
+            if (action is None or e.action == action) and (target_user_id is None or e.target_user_id == target_user_id)
+        ]
+        return sorted(rows, key=lambda e: e.id, reverse=True)[:limit]
+
+
+class MemoryForecastModelRepository(_Repository):
+    collection = "forecast_models"
+
+    def list(self, *, scope: str | None = None, status: str | None = None):
+        rows = [
+            m for m in self._all() if (scope is None or m.scope == scope) and (status is None or m.status == status)
+        ]
+        return sorted(rows, key=lambda m: m.id, reverse=True)
+
+    def for_owner(self, owner_id: str):
+        return sorted((m for m in self._all() if m.owner_id == owner_id), key=lambda m: m.id, reverse=True)
+
+
+class MemoryForecastRunRepository(_Repository):
+    collection = "forecast_runs"
+
+    def list(self, *, limit: int = 200):
+        return sorted(self._all(), key=lambda r: r.id, reverse=True)[:limit]

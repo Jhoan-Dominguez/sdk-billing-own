@@ -16,6 +16,9 @@ class MemoryBackend:
     def init_schema(self) -> None:
         self.store.init_schema()
 
+    def describe_schema(self) -> None:
+        return None  # sin esquema: las colecciones son las entidades del dominio
+
 
 def create(_settings) -> MemoryBackend:
     return MemoryBackend()

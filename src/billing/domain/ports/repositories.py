@@ -1,17 +1,22 @@
 """Persistencia: repositorios por agregado y una unidad de trabajo que los agrupa.
 
 Convención de acceso: las consultas que devuelven datos de usuarios reciben
-`owner_id`; None significa "todos" y solo debe venir de `Viewer.owner_filter()`.
+`owner_id`; None significa "todos" y solo lo usan casos de uso que no muestran el
+contenido a nadie (p. ej. la purga de borradores antiguos). Las cifras que ve un
+administrador salen de los métodos de conteo (`count_by_owner`, `usage_by_owner`...).
 """
 
 from collections.abc import Iterable
-from datetime import date
+from datetime import date, datetime
 from typing import Protocol, Self
 
 from billing.domain.models import (
     AgentSetting,
     Attachment,
+    AuditEntry,
     Category,
+    ForecastModel,
+    ForecastTrainingRun,
     MailboxConnection,
     Purchase,
     SecurityConfirmation,
@@ -38,6 +43,14 @@ class PurchaseRepository(Protocol):
         ...
 
     def by_owner(self, owner_id: str) -> list[Purchase]: ...
+    def count_by_owner(self) -> dict[str, int]:
+        """Número de compras de cada usuario."""
+        ...
+
+    def monthly_count_by_source(self, since: date) -> list[tuple[str, str, int]]:
+        """(mes "YYYY-MM", origen, compras) desde `since` por fecha de registro (sin importes)."""
+        ...
+
     def count_by_category(self, *, owner_id: str | None) -> dict[str, int]: ...
     def reassign_category(
         self, old: str, new: str, *, owner_id: str | None, exclude_owner_ids: Iterable[str] = ()
@@ -57,6 +70,14 @@ class AttachmentRepository(Protocol):
     def same_content(self, sha256: str, *, owner_id: str, exclude_id: int) -> list[Attachment]: ...
     def by_message_id(self, message_id: str, *, owner_id: str) -> Attachment | None:
         """El adjunto de ese usuario importado del correo con ese Message-ID."""
+        ...
+
+    def usage_by_owner(self) -> dict[str, dict[str, int]]:
+        """Por usuario: {"files": archivos, "bytes": tamaño total, "drafts": borradores}."""
+        ...
+
+    def extraction_log(self, since: datetime) -> list[tuple[datetime, dict | None, bool]]:
+        """(subida, extraction_meta, falló la extracción) de los adjuntos subidos desde `since`."""
         ...
 
 
@@ -105,6 +126,35 @@ class MailboxRepository(Protocol):
         """Buzones activos de todos los usuarios (los sincroniza el worker)."""
         ...
 
+    def all(self) -> list[MailboxConnection]: ...
+
+
+class AuditRepository(Protocol):
+    def add(self, entry: AuditEntry) -> None: ...
+    def list(
+        self, *, limit: int = 500, action: str | None = None, target_user_id: str | None = None
+    ) -> list[AuditEntry]:
+        """Las más recientes primero."""
+        ...
+
+
+class ForecastModelRepository(Protocol):
+    def get(self, model_id: int) -> ForecastModel | None: ...
+    def add(self, model: ForecastModel) -> None: ...
+    def delete(self, model: ForecastModel) -> None: ...
+    def for_owner(self, owner_id: str) -> list[ForecastModel]: ...
+    def list(self, *, scope: str | None = None, status: str | None = None) -> list[ForecastModel]:
+        """Los más recientes primero."""
+        ...
+
+
+class ForecastRunRepository(Protocol):
+    def get(self, run_id: int) -> ForecastTrainingRun | None: ...
+    def add(self, run: ForecastTrainingRun) -> None: ...
+    def list(self, *, limit: int = 200) -> list[ForecastTrainingRun]:
+        """Los más recientes primero."""
+        ...
+
 
 class UnitOfWork(Protocol):
     """Transacción sobre todos los repositorios: `with uow: ...; uow.commit()`.
@@ -120,6 +170,9 @@ class UnitOfWork(Protocol):
     confirmations: SecurityConfirmationRepository
     agent_settings: AgentSettingRepository
     mailboxes: MailboxRepository
+    audit_log: AuditRepository
+    forecast_models: ForecastModelRepository
+    forecast_runs: ForecastRunRepository
 
     def __enter__(self) -> Self: ...
     def __exit__(self, *exc) -> None: ...
