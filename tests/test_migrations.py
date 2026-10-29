@@ -1,5 +1,6 @@
 import json
 
+import pytest
 import sqlalchemy as sa
 from alembic import command
 from alembic.config import Config
@@ -68,3 +69,21 @@ def test_0006_translates_stored_values(tmp_path):
     assert (role, source, kind) == ("cliente", "banco", "imagen")
     assert json.loads(raw_meta) == meta
     engine.dispose()
+
+
+# El id "[sqlite]" la manda al final (conftest): el mapeo de SQLAlchemy rompe el adaptador en memoria.
+@pytest.mark.parametrize("engine", ["sqlite"])
+def test_describe_schema_reflects_database_and_migrations(tmp_path, engine):
+    from billing.infrastructure.persistence.sqlalchemy.backend import SqlAlchemyBackend
+
+    backend = SqlAlchemyBackend(f"sqlite:///{tmp_path / 'd.db'}")
+    backend.init_schema()
+    schema = backend.describe_schema()
+    tables = {t.name: t for t in schema.tables}
+    assert {"users", "purchases", "admin_audit_log", "ml_models", "ml_training_runs"} <= set(tables)
+    assert "alembic_version" not in tables
+    assert schema.current_revision == schema.head_revision and not schema.pending_migrations
+    fk = next(fk for fk in tables["ml_models"].foreign_keys if fk.ref_table == "ml_training_runs")
+    assert fk.columns == ("run_id",) and fk.on_delete == "SET NULL"
+    assert next(c for c in tables["users"].columns if c.name == "id").primary_key
+    backend.engine.dispose()

@@ -12,7 +12,7 @@ from billing.domain.auth import ADMIN, CUSTOMER
 from billing.domain.models import User
 from billing.infrastructure.extraction.extractors import RegexExtractor
 from billing.infrastructure.persistence.memory.backend import MemoryBackend
-from tests.conftest import ADMIN_ID, ADMIN_VIEWER, ANA_ID, ANA_VIEWER, BETO_ID, make_pdf
+from tests.conftest import ADMIN_ID, ADMIN_VIEWER, ANA_ID, ANA_VIEWER, BETO_ID, BETO_VIEWER, make_pdf
 
 PAGES_DIR = Path(billing.__file__).parent / "presentation" / "streamlit" / "pages"
 
@@ -65,23 +65,69 @@ def test_customer_only_sees_own_purchases(app_backend):
     assert "Ferretería Beto" not in text
 
 
-def test_admin_sees_everyone(app_backend):
-    at = run_page("summary_table", ADMIN_VIEWER)
+ADMIN_PAGES = ("users", "ml_models", "system", "audit", "data_model")
+
+
+@pytest.fixture
+def admin_app(app_backend, monkeypatch, directory):
+    """Páginas de administración sin Keycloak ni servicios reales."""
+    from billing.presentation.streamlit.components import admin as admin_component
+
+    monkeypatch.setattr(bootstrap, "user_directory", lambda: directory)
+    monkeypatch.setattr(bootstrap, "service_checks", lambda: {"Base de datos": lambda: "memory"})
+    admin_component.identity_statuses.clear()
+    return app_backend
+
+
+@pytest.mark.parametrize("page", ADMIN_PAGES)
+def test_admin_pages_reject_customers(admin_app, page):
+    at = run_page(page, ANA_VIEWER)
     assert not at.exception
-    text = page_text(at)
-    assert "Panadería Ana" in text and "Ferretería Beto" in text
-
-
-def test_comparison_page_for_admin(app_backend):
-    at = run_page("comparison", ADMIN_VIEWER)
-    assert not at.exception
-    assert at.title[0].value == "Comparativa de clientes"
-    assert not at.error
-
-
-def test_comparison_page_rejects_customer(app_backend):
-    at = run_page("comparison", ANA_VIEWER)
     assert "No tienes permiso" in at.error[0].value
+
+
+@pytest.mark.parametrize("page", ADMIN_PAGES)
+def test_admin_pages_render_without_purchase_content(admin_app, page):
+    at = run_page(page, ADMIN_VIEWER)
+    assert not at.exception, at.exception
+    text = page_text(at)
+    assert "Panadería Ana" not in text and "Ferretería Beto" not in text
+    assert "12.50" not in text and "80.00" not in text
+
+
+def test_users_page_lists_accounts_with_usage(admin_app):
+    at = run_page("users", ADMIN_VIEWER)
+    table = at.dataframe[0].value
+    assert {"Ana", "Beto", "Admin"} <= set(table["Nombre"])
+    assert table.set_index("Nombre").loc["Ana", "Compras"] == 1
+    assert "Total" not in table.columns
+
+
+def test_ml_models_page_shows_metrics(admin_app):
+    from billing.domain import forecasting
+    from billing.domain.models import ForecastModel
+
+    with admin_app.unit_of_work() as uow:
+        uow.forecast_models.add(
+            ForecastModel(
+                scope=forecasting.SCOPE_GLOBAL,
+                algorithm="lightgbm",
+                version="2026.10.1",
+                metrics={"mape": 12.5, "mae": 0.08, "mase": 0.7, "coverage": 81},
+            )
+        )
+        uow.commit()
+    at = run_page("ml_models", ADMIN_VIEWER)
+    assert not at.exception
+    table = at.dataframe[0].value
+    assert table.loc[0, "Versión"] == "2026.10.1"
+    assert table.loc[0, "Acierto"] == pytest.approx(87.5)
+    assert any(m.value == "87.5 %" for m in at.metric)
+
+
+def test_data_model_page_without_schema(admin_app):
+    at = run_page("data_model", ADMIN_VIEWER)
+    assert "no tiene esquema" in at.info[0].value
 
 
 def test_import_page_hides_other_users_drafts(app_backend, storage):
@@ -93,5 +139,6 @@ def test_import_page_hides_other_users_drafts(app_backend, storage):
     assert not at.exception
     text = page_text(at) + str([s.options for s in at.selectbox])
     assert "ana.pdf" in text and "beto.pdf" not in text
-    at = run_page("imports", ADMIN_VIEWER)  # tampoco el admin: los borradores son de su dueño
-    assert "beto.pdf" not in page_text(at) + str([s.options for s in at.selectbox])
+    at = run_page("imports", BETO_VIEWER)
+    text = page_text(at) + str([s.options for s in at.selectbox])
+    assert "beto.pdf" in text and "ana.pdf" not in text

@@ -27,21 +27,21 @@ def test_primary_role(claims, expected):
 
 def test_every_role_has_pages_and_unknown_role_has_none():
     for role in auth.ROLES:
-        assert auth.can_view(role, "summary")
         assert auth.can_view(role, "settings")
-    assert auth.can_view(auth.ADMIN, "comparison")
-    assert not auth.can_view(auth.CUSTOMER, "comparison")
+    # El administrador no ve compras: solo comparte Configuración con los clientes.
+    for page in ("summary", "summary_table", "imports"):
+        assert auth.can_view(auth.CUSTOMER, page) and not auth.can_view(auth.ADMIN, page)
+    for page in ("users", "ml_models", "system", "audit", "data_model"):
+        assert auth.can_view(auth.ADMIN, page) and not auth.can_view(auth.CUSTOMER, page)
     assert not auth.can_view(None, "summary")
     assert not auth.can_view("other", "summary")
 
 
 def test_viewer_scoping():
-    assert ANA_VIEWER.owner_filter() == ANA_ID
-    assert ANA_VIEWER.owner_filter(BETO_ID) == ANA_ID  # un cliente no elige dueño
-    assert ADMIN_VIEWER.owner_filter() is None
-    assert ADMIN_VIEWER.owner_filter(BETO_ID) == BETO_ID
     assert ANA_VIEWER.can_modify(ANA_ID)
-    assert not ADMIN_VIEWER.can_modify(ANA_ID)  # ver no implica poder cambiar
+    assert not ADMIN_VIEWER.can_modify(ANA_ID)  # administrar cuentas no da acceso a sus compras
+    assert ADMIN_VIEWER.manages_users and not ANA_VIEWER.manages_users
+    assert ANA_VIEWER.tracks_purchases and not ADMIN_VIEWER.tracks_purchases
     assert ANA_VIEWER.can_delete_own_account and not ADMIN_VIEWER.can_delete_own_account
     assert ADMIN_VIEWER.can_manage_category(None) and not ANA_VIEWER.can_manage_category(None)
     assert ANA_VIEWER.can_manage_category(ANA_ID) and not ANA_VIEWER.can_manage_category(BETO_ID)
