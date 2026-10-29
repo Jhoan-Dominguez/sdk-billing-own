@@ -9,7 +9,7 @@
 | `db` | `postgres:17-alpine` | `DB_PORT` (5433) | Bases `billing` (app) y `keycloak` |
 | `keycloak` | propia (`infra/docker/keycloak/Dockerfile`, Keycloak 26.8) | `KEYCLOAK_PORT` (8180) | Identidad: login, registro, 2FA, correos |
 | `app` | propia (`infra/docker/app/Dockerfile`) | `APP_PORT` (8502) | App web Streamlit |
-| `worker` | la misma que `app` | — | `python -m billing.worker`: sincroniza buzones IMAP |
+| `worker` | la misma que `app` | — | `python -m billing.worker`: sincroniza buzones IMAP y entrena los modelos de predicción |
 | `pgadmin` | `dpage/pgadmin4:9` | `PGADMIN_PORT` (5050) | Administración de PostgreSQL (servidor ya registrado) |
 | `mailpit` | `axllent/mailpit:v1.27` | `MAILPIT_PORT` (8025) web, `MAILPIT_SMTP_PORT` (1025) SMTP | Captura el correo saliente de la app y de Keycloak |
 | `greenmail` | `greenmail/standalone:2.1.3` | `GREENMAIL_SMTP_PORT` (3025), `GREENMAIL_IMAP_PORT` (3143) | Bandeja IMAP de pruebas para notificaciones bancarias |
@@ -43,13 +43,14 @@ Mailpit y GreenMail guardan en memoria: se vacían al reiniciarlos.
 El bloque `x-app-env` (ancla YAML `&app-env`) define una sola vez lo que necesitan ambos:
 conexión a `db`, Keycloak interno (`http://keycloak:8080`) y público, secretos, SMTP de
 Mailpit, proveedores LLM (`OLLAMA_BASE_URL` apunta a `host.docker.internal`, resuelto con
-`extra_hosts: host-gateway`) e intervalo de sincronización. La `app` añade
+`extra_hosts: host-gateway`), intervalo de sincronización y de entrenamiento de modelos. La `app` añade
 `AUTH_COOKIE_SECRET`; el `worker` añade `BILLING_SKIP_SECRETS=1`.
 
 ## Imagen de la app (`infra/docker/app/`)
 
 - `python:3.13-slim`, usuario sin privilegios `app` (uid 1000), `BILLING_DATA_DIR=/app/data`.
-- `pip install ".[llm]"`: el paquete con los SDK de Anthropic, OpenAI y Gemini.
+- `libgomp1` (OpenMP, lo necesita LightGBM) y `pip install ".[llm,ml]"`: el paquete con los SDK
+  de Anthropic, OpenAI y Gemini y LightGBM.
 - Copia `.streamlit/config.toml` (tema), `scripts/` y el `entrypoint.sh`.
 - `entrypoint.sh` genera `.streamlit/secrets.toml` con `scripts/write_secrets.py` (salvo
   `BILLING_SKIP_SECRETS=1`) y ejecuta el comando: `python -m billing --server.address=0.0.0.0 --server.port=8501`.
@@ -83,6 +84,7 @@ make keycloak-reimport       # vuelve a importar el realm (borra los usuarios de
 make seed                    # 12 meses de compras de prueba
 make bank-samples            # alertas bancarias de prueba + buzón conectado
 make sync-once               # una sincronización de buzones
+make train                   # entrena ya los modelos de predicción
 make down
 ```
 

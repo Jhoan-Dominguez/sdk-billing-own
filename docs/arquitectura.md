@@ -23,7 +23,7 @@ adaptador concreto se usa en cada caso.
                                  │ implementa los puertos
                  ┌───────────────┴──────────────────────────────┐
                  │ infrastructure/  persistence · llm · mail ·  │
-                 │ extraction · identity · storage · crypto     │
+                 │ extraction · identity · storage · crypto · ml│
                  └──────────────────────────────────────────────┘
 ```
 
@@ -54,6 +54,10 @@ Es el único módulo que conoce las clases concretas. Expone fábricas cacheadas
 | `mailbox_gateway()` | `MailboxGateway` (IMAP) | — |
 | `secret_cipher()` | `SecretCipher` (Fernet) | `BILLING_SECRET_KEY` |
 | `account_admin(user_id)` | `AccountAdmin` (API admin de Keycloak) o `None` | `KEYCLOAK_ADMIN_API_SECRET` |
+| `user_directory()` | `UserDirectory` (todas las cuentas; solo panel del administrador) o `None` | `KEYCLOAK_ADMIN_API_SECRET` |
+| `describe_schema()` | `SchemaInfo` del motor (vista Modelo de datos) o `None` | `BILLING_PERSISTENCE` |
+| `service_checks()` | Comprobaciones de base de datos, Keycloak y SMTP (Estado del sistema) | — |
+| `global_forecaster()` / `series_forecaster()` | Algoritmos de predicción (LightGBM o referencia / ETS) | `BILLING_FORECAST_ALGORITHM` vía `infrastructure/ml/registry.py` |
 | `account_actions()` | `AccountActions` (URLs `kc_action`) | Keycloak |
 | `reauthenticator()` | `Reauthenticator` (reautenticación con 2FA) | Keycloak |
 
@@ -74,6 +78,7 @@ quitar una implementación es tocar solo esa carpeta:
 | Bancos | `infrastructure/extraction/bank_rules.py` (`TEMPLATES`) | `BankTemplate` con patrones; ver [correos bancarios](servicios/correos-bancarios.md) |
 | Correo saliente | `bootstrap.mailer()` | clase con `send(EmailContent)` |
 | Archivos | `bootstrap.file_storage()` | clase con `save/read/delete` |
+| Predicción | `infrastructure/ml/registry.py` (`GLOBAL`, `SERIES`) | clase con `fit`/`predict`; ver [modelos de predicción](modelos-de-prediccion.md) |
 
 ## Árbol de carpetas
 
@@ -84,27 +89,31 @@ src/billing/
 ├── bootstrap.py                  composition root
 ├── domain/
 │   ├── models.py                 entidades (dataclasses): User, Purchase, PurchaseItem, Attachment,
-│   │                             Category, SecurityConfirmation, AgentSetting, MailboxConnection
+│   │                             Category, SecurityConfirmation, AgentSetting, MailboxConnection,
+│   │                             AuditEntry, ForecastTrainingRun, ForecastModel, SpendForecast
 │   ├── auth.py                   roles, Viewer, permisos
 │   ├── security.py               acciones sensibles y pasos que exige cada una
 │   ├── invoice.py                InvoiceData, ExtractionResult, avisos de coherencia
 │   ├── bank.py                   BankNotification (movimiento bancario)
 │   ├── llm.py                    bloques neutrales (texto/imagen/PDF), Capabilities, LLMResult
 │   ├── catalog.py, files.py, periods.py, values.py, errors.py
-│   └── ports/                    repositories, storage, identity, llm, extraction, mail, crypto
+│   ├── admin.py, schema.py       acciones auditadas y formato de exportación; descripción del esquema
+│   ├── forecasting.py            series, cuantiles, combinación y métricas de los modelos de predicción
+│   └── ports/                    repositories, storage, identity, llm, extraction, mail, crypto, forecasting
 ├── application/
 │   ├── purchases.py, imports.py, categories.py, users.py, reports.py
 │   ├── security/                 confirmations.py, account_actions.py
 │   ├── agents/                   base.py, registry.py, settings.py, prompts/*.md
 │   ├── bank_emails/              mailboxes.py, sync.py
 │   ├── admin/                    accounts.py, backup.py, audit.py, system.py
-│   └── forecasting/              models.py (consulta de modelos de predicción)
+│   └── forecasting/              series.py, training.py, outlook.py, models.py
 ├── infrastructure/
 │   ├── persistence/              registry.py, sqlalchemy/ (tables, orm, repositorios, migraciones), memory/
 │   ├── llm/                      anthropic, openai (+compatibles y Ollama), gemini, fake, fallback, registry
 │   ├── extraction/               documents, regex, extractors (facturas), bank_rules, bank (notificaciones)
 │   ├── mail/                     smtp, console, imap, rendering, templates/layout.html
 │   ├── identity/keycloak.py      acciones, cuenta de servicio, administración de cuenta, reautenticación
+│   ├── ml/                       features, lightgbm_model (general), ets (por cliente), baseline, registry
 │   ├── crypto/fernet.py          cifrado de secretos
 │   └── storage/local.py          archivos en disco
 ├── presentation/streamlit/
@@ -112,7 +121,7 @@ src/billing/
 │   ├── pages/                    summary, summary_table, imports, settings; admin: users, ml_models, system, audit, data_model
 │   ├── components/               session, layout, formatting, forms, files, profile, admin, settings/
 │   └── assets/styles.css
-└── worker/__main__.py            `python -m billing.worker`: sincroniza buzones IMAP
+└── worker/__main__.py            `python -m billing.worker`: sincroniza buzones IMAP y entrena los modelos
 infra/
 ├── docker/app/                   imagen de la app y del worker, entrypoint
 ├── docker/keycloak/              imagen de Keycloak, realm, temas login/email, script de Google
@@ -128,7 +137,8 @@ docs/                             esta documentación
 
 1. `app.py` lee los claims del ID token (`st.user`). Sin sesión, redirige a Keycloak (`st.login`).
 2. Construye el `Viewer` (rol desde el claim `roles`), sincroniza el usuario en la base
-   (`users.sync_from_claims`) y aplica las migraciones una vez por proceso.
+   (`users.sync_from_claims`) y aplica las migraciones una vez por proceso. Si la cuenta está
+   bloqueada (`users.disabled_at`), la expulsa.
 3. `st.navigation` solo recibe las páginas permitidas para el rol (`auth.PAGES_BY_ROLE`).
 4. La página pide adaptadores a `bootstrap`, abre `with bootstrap.unit_of_work() as uow:`
    y llama a los casos de uso con `owner_id = viewer.user_id`.
@@ -159,6 +169,26 @@ solicitar ─▶ correo con enlace ─▶ confirmar enlace ─▶ (si 2FA) reaut
 
 Detalle en [servicios/seguridad.md](servicios/seguridad.md).
 
+### Acción de un administrador
+
+```
+página de administración ─▶ require_manager ─▶ caso de uso (application/admin) con el Viewer
+  ─▶ PermissionDenied si no es admin ─▶ UserDirectory (Keycloak) + unidad de trabajo
+  ─▶ audit.record (admin_audit_log)
+```
+
+Detalle en [aplicacion/administracion.md](aplicacion/administracion.md).
+
+### Entrenamiento y predicción
+
+```
+worker (cada hora) / «Entrenar ahora» / make train ─▶ training.train_all
+  ─▶ series desde purchases ─▶ modelo general (si toca) + modelos de cliente (si cambió su huella)
+  ─▶ spend_forecasts ─▶ Resumen del cliente (outlook)
+```
+
+Detalle en [modelos-de-prediccion.md](modelos-de-prediccion.md).
+
 ## Decisiones de diseño
 
 - **Entidades como dataclasses + mapeo imperativo**: las clases del dominio no heredan de
@@ -174,3 +204,10 @@ Detalle en [servicios/seguridad.md](servicios/seguridad.md).
 - **Las extracciones nunca bloquean una subida**: si el LLM falla, se usan reglas y se guarda
   el error en el borrador.
 - **Proveedor LLM en tiempo de ejecución**: credenciales en el entorno, elección en la base.
+- **El administrador no ve compras**: administra cuentas y ve cifras de uso; cada acción suya
+  queda en una auditoría sin claves foráneas (sobrevive al borrado de los usuarios).
+- **Exportación a nivel de filas**: el ZIP de un usuario guarda sus filas tabla por tabla con
+  sus claves; restaurar inserta filas nuevas y remapea las claves (el id de Keycloak cambia).
+- **Datos de entrenamiento derivados**: los modelos se entrenan con series calculadas desde
+  `purchases` en cada pasada; no hay copias que sincronizar. Las predicciones de un mes quedan
+  fijas cuando empieza, para medir el error real.

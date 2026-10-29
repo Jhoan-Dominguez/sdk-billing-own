@@ -8,7 +8,7 @@ ni el detalle de una compra.
 | Página (`pages/`) | URL | Contenido |
 |---|---|---|
 | `users.py` — Usuarios | `/usuarios` | Cuentas, estado, cifras de uso; exportar, bloquear, cambiar rol, soporte, eliminar; invitar y restaurar |
-| `ml_models.py` — Modelos de predicción | `/modelos` | Modelos entrenados, versiones, métricas (acierto, error, MAE, MASE, cobertura), entrenamientos |
+| `ml_models.py` — Modelos de predicción | `/modelos` | Modelos entrenados, versiones, métricas (acierto, error, MAE, MASE, cobertura), entrenamientos, «Entrenar ahora» |
 | `system.py` — Estado del sistema | `/sistema` | Servicios, buzones y worker, agentes IA, uso, retención |
 | `audit.py` — Auditoría | `/auditoria` | Acciones de los administradores, filtrables y exportables a CSV |
 | `data_model.py` — Modelo de datos | `/modelo-de-datos` | Diagrama entidad-relación, detalle de tablas, migraciones (solo consulta) |
@@ -97,9 +97,10 @@ Acciones en `domain/admin.py` (`ACTION_LABELS`). `audit.record` guarda en su pro
 
 ## Modelos de predicción
 
-`application/forecasting/models.py` expone `overview()` para la página: modelos (`ml_models`),
-entrenamientos (`ml_training_runs`), acierto medio de los activos e historial de versiones.
-Métricas en `domain/forecasting.py`:
+`application/forecasting/models.py` expone `overview()` para la página: modelos (`ml_models`,
+por cliente y moneda), entrenamientos (`ml_training_runs`), acierto medio de los activos e
+historial de versiones; y `train_now()` para el botón «Entrenar ahora» (reentrena todo,
+incluido el general, y queda en la auditoría). Métricas en `domain/forecasting.py`:
 
 | Clave | Significado |
 |---|---|
@@ -108,8 +109,7 @@ Métricas en `domain/forecasting.py`:
 | `mase` | Error frente a repetir el mes anterior; < 1 = el modelo aporta |
 | `coverage` | % de meses cuyo gasto real cayó en el rango P10–P90 (ideal ≈ 80 %) |
 
-El entrenamiento y las predicciones aún no existen; la página muestra un estado vacío hasta que
-haya modelos. Ver el diseño en [modelo-de-datos.md](../modelo-de-datos.md).
+Cómo se entrenan, dónde se guardan y qué ve el cliente: [modelos-de-prediccion.md](../modelos-de-prediccion.md).
 
 ## Modelo de datos
 

@@ -39,7 +39,7 @@ sin ellos). `default-roles-billing` incluye `customer`: toda cuenta nueva (regis
 | Cliente | Tipo | Uso |
 |---|---|---|
 | `billing-app` | Confidencial (`${KEYCLOAK_CLIENT_SECRET}`), *standard flow* | Login de Streamlit, acciones `kc_action` y reautenticación. Redirecciones `http://localhost:8501` y `:${APP_PORT}` a `/oauth2callback` y `/configuracion`. Mappers: **realm roles** → claim `roles`; **amr** → claim `amr` |
-| `billing-admin-api` | Cuenta de servicio (`${KEYCLOAK_ADMIN_API_SECRET}`) | La app gestiona con ella la cuenta del propio usuario. Roles de `realm-management`: `view-users`, `manage-users` (sin acceso al realm `master` ni a clientes) |
+| `billing-admin-api` | Cuenta de servicio (`${KEYCLOAK_ADMIN_API_SECRET}`) | La app gestiona con ella la cuenta del propio usuario (Configuración) y, en el panel del administrador, las de los demás: estado, bloquear, roles (vía `role-mappings/realm/available`), correos de acciones, crear y borrar. Roles de `realm-management`: `view-users`, `manage-users` (sin `view-realm`, sin acceso al realm `master` ni a clientes) |
 
 ### Usuarios de desarrollo
 

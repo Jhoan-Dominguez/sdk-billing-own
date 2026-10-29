@@ -54,7 +54,7 @@ La app en local (`make dev`) usa el puerto 8501.
 | `KEYCLOAK_CLIENT_ID` | `billing-app` | Cliente OIDC |
 | `KEYCLOAK_CLIENT_SECRET` | — | Secreto del cliente: login de Streamlit y reautenticación con 2FA |
 | `KEYCLOAK_ADMIN_API_CLIENT_ID` | `billing-admin-api` | Cuenta de servicio de gestión de cuentas |
-| `KEYCLOAK_ADMIN_API_SECRET` | — | Su secreto. Sin él, Configuración no puede gestionar la cuenta |
+| `KEYCLOAK_ADMIN_API_SECRET` | — | Su secreto. Sin él, Configuración no puede gestionar la cuenta ni el administrador las de los demás (Usuarios) |
 | `KEYCLOAK_PUBLIC_URL` | `http://localhost:KEYCLOAK_PORT` | URL que ve el navegador |
 | `KEYCLOAK_INTERNAL_URL` | = pública | URL desde la app (`http://keycloak:8080` en Docker) |
 | `BILLING_ADMIN_PASSWORD` / `BILLING_CUSTOMER_PASSWORD` | `Admin-Compras-2026` / `Cliente-Compras-2026` | Contraseñas de los usuarios de desarrollo (solo al importar el realm) |
@@ -107,6 +107,14 @@ esa elección (tabla `agent_settings`) tiene prioridad sobre estas variables.
 | `BILLING_MAIL_SYNC_INTERVAL` | `120` | Segundos entre sincronizaciones del worker |
 | `BILLING_MAIL_SYNC_BATCH` | `50` | Correos importados como máximo por buzón y pasada |
 | `GREENMAIL_USERS` | `cliente:…@billing.example.com,maria.lopez:…` | Buzones de la bandeja de pruebas (`usuario:contraseña@dominio`) |
+
+## Predicción del gasto
+
+| Variable | Por defecto | Uso |
+|---|---|---|
+| `BILLING_FORECAST_ALGORITHM` | `lightgbm` | Modelo general: `lightgbm` (extra `ml`) o `baseline`. Si LightGBM no está instalado se usa `baseline` |
+| `BILLING_FORECAST_INTERVAL` | `3600` | Segundos entre revisiones del worker: reentrena a los clientes cuyos datos cambiaron y actualiza las predicciones |
+| `BILLING_FORECAST_GLOBAL_INTERVAL` | `86400` | Segundos entre reentrenos del modelo general |
 
 ## Otros
 

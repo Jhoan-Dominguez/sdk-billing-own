@@ -42,6 +42,7 @@ volumen de Docker: los borradores creados por el worker de Docker no tienen su a
 | `make mail` | Abre Mailpit |
 | `make install`, `secrets`, `dev`, `worker` | Desarrollo local |
 | `make sync-once` | Una sincronización de buzones en el contenedor `worker` |
+| `make train` | Entrena los modelos de predicción (incluido el general) en el contenedor `worker` |
 | `make migrate` | `alembic upgrade head` |
 | `make test` | Pruebas (ver «Pruebas» abajo) |
 | `make lint`, `format` | pre-commit (ruff y comprobaciones) / formateo |
@@ -65,6 +66,7 @@ volumen de Docker: los borradores creados por el worker de Docker no tienen su a
 | Agentes | Configuración → Agentes IA (admin) → elegir proveedor/modelo → Probar |
 | Facturas | Importar facturas → subir una foto, PDF o `.eml` |
 | Notificaciones bancarias | `make bank-samples` → `make sync-once` → Importar facturas |
+| Predicción | `make seed` → `make train` (o Modelos de predicción → Entrenar ahora) → Resumen de un cliente |
 | Otra base de datos | `BILLING_DATABASE_URL=sqlite:///data/billing.sqlite make dev` o `BILLING_PERSISTENCE=memory` |
 
 Comprobaciones rápidas:
@@ -105,7 +107,9 @@ consola y el proveedor LLM `local` antes de importar `billing`.
 | `test_domain.py` | Roles y `Viewer`, tipos de archivo, periodos, `BankNotification`, avisos de coherencia |
 | `test_extraction.py` | Regex de facturas, extractor LLM con `FakeLLMClient` y su respaldo, plantillas de bancos, `LLMBankParser` |
 | `test_application.py` | Casos de uso (compras, borradores, categorías, usuarios) contra memoria **y** SQLite con las migraciones |
-| `test_migrations.py` | La migración `0006` traduce y revierte los valores guardados |
+| `test_admin.py` | Casos de uso del administrador (cuentas, exportación/restauración, auditoría, estado) con un `UserDirectory` falso |
+| `test_forecasting.py` | Series, métricas, algoritmos (ETS, referencia, LightGBM), entrenamiento, congelado de meses y vista del cliente |
+| `test_migrations.py` | La migración `0006` traduce y revierte los valores guardados; `describe_schema` |
 | `test_ui.py` | Páginas con `streamlit.testing.v1.AppTest`: aislamiento por dueño y permisos por rol |
 
 El fixture `backend` se parametriza con `memory` y `sqlite`. El mapeo imperativo de

@@ -44,12 +44,14 @@ with bootstrap.unit_of_work() as uow:
 | `audit_log` | `add`, `list(limit, action, target_user_id)` |
 | `forecast_models` | `get`, `add`, `delete`, `for_owner`, `list(scope, status)` |
 | `forecast_runs` | `get`, `add`, `list(limit)` |
+| `forecasts` | `add`, `delete`, `get(owner_id, currency, period)`, `for_owner` |
 
 Convenciones que todo motor debe respetar:
 
 - `owner_id=None` significa «todos» y solo lo usan casos de uso de administración que no
   muestran el contenido. Las cifras del panel salen de `purchases.count_by_owner`,
-  `purchases.monthly_count_by_source`, `attachments.usage_by_owner` y `attachments.extraction_log`.
+  `purchases.monthly_count_by_source`, `attachments.usage_by_owner` y `attachments.extraction_log`;
+  el entrenamiento usa `purchases.monthly_totals(owner_id=None)` (totales por mes y moneda).
 - `describe_schema()` (opcional del `PersistenceBackend`) devuelve un `domain.schema.SchemaInfo`
   o `None` si el motor no tiene esquema.
 - Las relaciones `purchase.items`, `purchase.attachments` y `purchase.owner` deben estar

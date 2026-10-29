@@ -137,9 +137,12 @@ estado: última sincronización, movimientos importados y último error.
 python -m billing.worker              # bucle cada BILLING_MAIL_SYNC_INTERVAL segundos
 python -m billing.worker --once       # una pasada (make sync-once en Docker)
 python -m billing.worker --interval 30
+python -m billing.worker --train      # entrena los modelos de predicción y termina (make train)
 ```
 
 - Servicio `worker` de Docker Compose (misma imagen que la app, `BILLING_SKIP_SECRETS=1`).
+- Además entrena los modelos de predicción: en la primera pasada y cada
+  `BILLING_FORECAST_INTERVAL` (ver [modelos-de-prediccion.md](../modelos-de-prediccion.md)).
 - `sync_all()` procesa cada buzón activo en su propia transacción; un fallo no detiene el bucle.
 - Aplica las migraciones al arrancar, se detiene limpiamente con SIGTERM/SIGINT y toca
   `/tmp/worker-alive` tras cada pasada (healthcheck: menos de 10 minutos).

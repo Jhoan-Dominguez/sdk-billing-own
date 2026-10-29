@@ -26,7 +26,7 @@ utilizable, sino que se valida otra vez la cookie y se redirige al login.
 
 | Página | Rol | Contenido |
 |---|---|---|
-| `summary.py` (`/resumen`) — Resumen general | customer | Gasto del mes, compras, categoría y comercio principales; barras por mes, categoría, método y comercio (por moneda) |
+| `summary.py` (`/resumen`) — Resumen general | customer | Gasto del mes, compras, categoría y comercio principales; en el mes en curso, la proyección (cierre estimado, mes siguiente, aviso); barras por mes, categoría, método y comercio (por moneda) |
 | `summary_table.py` (`/tabla_resumen`) — Tabla resumen | customer | Compras del mes con filtro por categoría, detalle con adjuntos, editar, eliminar, exportar CSV y «Agregar compra» |
 | `imports.py` (`/importar`) — Importar facturas | customer | Subir archivos o tomar foto; borradores (facturas y alertas bancarias, también las de buzones) con vista previa, datos de extracción, avisos y formulario de confirmación |
 | `users.py`, `ml_models.py`, `system.py`, `audit.py`, `data_model.py` | admin | Ver [administracion.md](administracion.md) |
@@ -58,6 +58,7 @@ final, «Reenviar correo» y «Cancelar solicitud».
 |---|---|
 | `session.py` | `ensure_database`, `user_claims`, `current_viewer` (detiene la página sin Viewer), `login_screen` |
 | `layout.py` | `apply_styles`, `flash`/`show_flash` (avisos tras `st.rerun`), `page_header` (título y mes) |
+| `forecast.py` | `render(owner_id, history, preferred)`: proyección por moneda con gráfico de real vs. previsto |
 | `admin.py` | `require_manager`, `user_directory`, `identity_statuses` (caché de 30 s), `human_bytes`, `when` |
 | `forms.py` | `form_options(viewer)`, `purchase_form(key, values, items, …)` con `st.data_editor` para las líneas |
 | `files.py` | `show_attachment`, `draft_label`, `extraction_info`, `draft_warnings` |

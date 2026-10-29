@@ -29,6 +29,7 @@ ECR (una imagen por servicio) · CloudWatch Logs · Amazon SES (SMTP)
 
 - Adaptador S3 de `FileStorage` (`BILLING_STORAGE=s3`), registrado en `bootstrap.file_storage()`.
 - Keycloak en modo `start` con HTTPS y hostname público; tema de login sin el README.
-- Un servicio ECS para el `worker` (misma imagen, comando `python -m billing.worker`).
+- Un servicio ECS para el `worker` (misma imagen, comando `python -m billing.worker`): sincroniza
+  buzones y entrena los modelos de predicción (LightGBM; reservar algo más de memoria).
 - SMTP real (SES) en `SMTP_*` para la app y el realm.
 - `BILLING_SECRET_KEY`, claves de LLM y secretos de Keycloak desde Secrets Manager.

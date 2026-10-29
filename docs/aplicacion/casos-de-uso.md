@@ -103,7 +103,14 @@ y lanzan `PermissionDenied` si no tiene `manages_users`.
 
 ## `forecasting/` — predicción del gasto
 
-- `models.py`: `ModelsOverview` (activos, acierto medio, historial por versión) y `overview`.
+Ver [modelos-de-prediccion.md](../modelos-de-prediccion.md).
+
+- `series.py`: `build_series` (series mensuales por cliente y moneda desde las compras), `fingerprint`.
+- `training.py`: `train_all` (pasada completa), `train_global`, `train_series`, `backtest_global`,
+  `backtest_series`, `refresh_forecasts`, `active_global`, `last_global_training`, `TrainingReport`.
+- `outlook.py`: `outlook(uow, owner_id)` → `Outlook` por moneda (predicción del mes en curso, meses
+  siguientes, meses cerrados con el real, `Projection`, `accuracy`, `above_usual`).
+- `models.py`: `ModelsOverview` (activos, acierto medio, historial por versión), `overview`, `train_now`.
 
 ## Dominio (`src/billing/domain/`)
 
@@ -112,7 +119,7 @@ y lanzan `PermissionDenied` si no tiene `manages_users`.
 | `models.py` | Entidades ([modelo de datos](../modelo-de-datos.md)) |
 | `auth.py` | Roles `admin`/`customer`, `PAGES_BY_ROLE`, `Viewer` (`manages_users`, `tracks_purchases`...), `viewer_from_claims`, `primary_role` |
 | `admin.py` | Acciones auditadas (`ACTION_LABELS`), formato y versión de la exportación |
-| `forecasting.py` | Alcances, estados, métricas de los modelos de predicción, `accuracy_pct` |
+| `forecasting.py` | Alcances, estados y métricas de los modelos; `MonthlySeries`, `Quantiles`, `user_weight`, `blend`, `backtest_metrics`, `history_scale` |
 | `schema.py` | `SchemaInfo`, `TableInfo`... (vista Modelo de datos) |
 | `security.py` | Propósitos de confirmación y sus parámetros |
 | `invoice.py` | `InvoiceData`, `ExtractionResult`, `consistency_warnings` |
@@ -120,6 +127,6 @@ y lanzan `PermissionDenied` si no tiene `manages_users`.
 | `llm.py` | Bloques, `Capabilities`, `LLMResult` |
 | `catalog.py` | Categorías iniciales, «Otros», métodos de pago, monedas, orígenes (`manual`, `bank`) y sus etiquetas (`SOURCE_LABELS`), tipos de documento |
 | `files.py` | Tipos de archivo aceptados y `classify` |
-| `periods.py` | `month_key`, `month_bounds`, `last_months` |
+| `periods.py` | `month_key`, `month_bounds`, `last_months`, `add_months` |
 | `values.py` | `clean_str`, `truncate`, `to_decimal`, `CENT` |
 | `errors.py` | `ValidationError`, `UnsupportedFile`, `NotFound`, `PermissionDenied` |

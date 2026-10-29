@@ -10,6 +10,7 @@ Documentación de construcción y funcionamiento de **Registro de compras**. El
 | [arquitectura.md](arquitectura.md) | Capas hexagonales, dependencias, composition root, registros de adaptadores, árbol de carpetas |
 | [configuracion.md](configuracion.md) | Todas las variables de entorno, valores por defecto y quién las lee |
 | [modelo-de-datos.md](modelo-de-datos.md) | Entidades, tablas, columnas, índices, relaciones y migraciones |
+| [modelos-de-prediccion.md](modelos-de-prediccion.md) | Modelos de predicción del gasto: datos, LightGBM y ETS, combinación, métricas, almacenamiento, entrenamiento, consumo, operación |
 | **Servicios** | |
 | [servicios/seguridad.md](servicios/seguridad.md) | 2FA, verificación de cuentas por correo, confirmaciones de acciones sensibles |
 | [servicios/agentes.md](servicios/agentes.md) | Agentes LLM y proveedores intercambiables (Anthropic, OpenAI, Gemini, Ollama) |
@@ -37,3 +38,9 @@ Documentación de construcción y funcionamiento de **Registro de compras**. El
 - **Borrador**: adjunto importado sin compra asociada (`attachments.purchase_id IS NULL`), pendiente de revisión.
 - **Confirmación de seguridad**: solicitud de una acción sensible que exige correo y, si aplica, código 2FA.
 - **Viewer**: el usuario autenticado y lo que puede ver/modificar (`domain/auth.py`).
+- **Auditoría**: registro de las acciones de los administradores (`admin_audit_log`).
+- **Exportación de usuario**: ZIP con las filas y archivos de un usuario para recrearlo con «Restaurar».
+- **Serie**: gasto mensual de un cliente en una moneda (meses completos), derivado de las compras.
+- **Modelo general / por cliente**: LightGBM entrenado con las series de todos (normalizadas) /
+  suavizado exponencial entrenado con la serie de un cliente.
+- **P10 / P50 / P90**: cuantiles de una predicción; P10–P90 es el rango probable (80 %).

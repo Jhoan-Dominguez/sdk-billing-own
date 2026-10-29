@@ -7,10 +7,11 @@ Aplicación web para registrar compras mensuales, a mano o importando facturas (
 - **Resumen general:** gasto del mes, compras registradas, categoría y comercio principales, y gráficos por mes, categoría, método de pago y comercio.
 - **Tabla resumen:** compras del mes con filtro por categoría, detalle, edición, borrado, exportación a CSV y alta de compras nuevas.
 - **Importar facturas:** subir archivos o tomar una foto. Un agente LLM (Claude, GPT, Gemini u Ollama) o las reglas locales extraen los datos, que quedan en borrador para revisarlos. Avisa de archivos repetidos, de incoherencias en los totales y de compras parecidas.
+- **Predicción del gasto:** en el resumen del mes en curso, el cierre estimado del mes, lo previsto para el mes siguiente con un rango probable y un aviso si vas por encima de lo habitual. Un modelo general (LightGBM) aprende de todos los clientes y uno propio por cliente lo personaliza; el worker los reentrena solo cuando hay datos nuevos.
 - **Notificaciones bancarias:** alertas de Bancolombia, Davivienda, BBVA, Banco de Bogotá y Nequi, subidas como `.eml` o leídas de tu buzón (Gmail, Outlook o IMAP) cada pocos minutos.
 - **Administración** (solo administradores):
   - Usuarios: estado y cifras de uso de cada cuenta; bloquear, cambiar rol, cerrar sesiones, forzar cambio de contraseña, quitar 2FA, invitar, eliminar, y **exportar** todos sus datos a un ZIP con el que **restaurarlo** después.
-  - Modelos de predicción: modelos entrenados, versiones y métricas (acierto, error, MAE, MASE, cobertura).
+  - Modelos de predicción: modelos entrenados, versiones, métricas (acierto, error, MAE, MASE, cobertura), entrenamientos y «Entrenar ahora».
   - Estado del sistema: servicios, buzones y worker, agentes IA, uso y retención de datos.
   - Auditoría de las acciones de los administradores y modelo de datos (diagrama, tablas y migraciones).
 - **Configuración:**
@@ -44,6 +45,7 @@ Requisitos: Docker con Compose v2 y `make`.
 make up            # crea .env si no existe, construye y levanta el stack
 make seed          # carga 12 meses de compras de prueba
 make bank-samples  # envía alertas bancarias de prueba y conecta el buzón de cliente@
+make train         # entrena ya los modelos de predicción (el worker lo hace solo cada hora)
 ```
 
 | Servicio | URL | Acceso |
@@ -99,6 +101,7 @@ Sin ninguno, la app usa solo reglas: lee PDFs digitales, correos y las alertas d
 | `make restart`, `make logs`, `make ps` | Reiniciar, ver logs y estado (`SERVICE=app` para uno solo) |
 | `make seed`, `make seed-reset` | Datos de prueba |
 | `make bank-samples`, `make sync-once` | Alertas bancarias de prueba y una sincronización de buzones |
+| `make train` | Entrena ya los modelos de predicción (el worker lo hace solo cada hora) |
 | `make keycloak-reimport` | Reimporta el realm desde el JSON (borra los usuarios de Keycloak, no las compras) |
 | `make install` | Crea `.venv` con dependencias de desarrollo y hooks de pre-commit |
 | `make dev` / `make worker` | App en local (http://localhost:8501) y worker de buzones en local |
@@ -115,17 +118,19 @@ Arquitectura hexagonal (puertos y adaptadores). Las dependencias apuntan hacia d
 src/billing/
 ├── domain/            Entidades, reglas (roles, seguridad) y puertos (interfaces)
 ├── application/       Casos de uso: compras, importación, usuarios, categorías, reportes,
-│                      security/ (confirmaciones), agents/ (agentes LLM), bank_emails/ (buzones)
+│                      security/ (confirmaciones), agents/ (agentes LLM), bank_emails/ (buzones),
+│                      admin/ (panel del administrador), forecasting/ (predicción del gasto)
 ├── infrastructure/    Adaptadores, un paquete por servicio:
 │   ├── persistence/   registry + sqlalchemy/ (PostgreSQL, SQLite, MySQL) + memory/
 │   ├── llm/           Anthropic, OpenAI y compatibles, Gemini, Ollama, falso, cadena
 │   ├── extraction/    Facturas (LLM y reglas) y notificaciones bancarias (plantillas y LLM)
 │   ├── mail/          SMTP, IMAP y plantillas de correo
 │   ├── identity/      Keycloak
+│   ├── ml/            Modelos de predicción: LightGBM (general), ETS (por cliente), referencia
 │   ├── crypto/        Cifrado de secretos
 │   └── storage/       Archivos (disco local)
 ├── presentation/streamlit/   Interfaz web
-├── worker/            Sincronización periódica de buzones IMAP
+├── worker/            Sincronización periódica de buzones IMAP y entrenamiento de modelos
 ├── bootstrap.py       Elige y conecta los adaptadores según la configuración
 └── settings.py        Variables de entorno
 infra/                 Docker (app, Keycloak con tema y realm, Postgres, pgAdmin) y Terraform (AWS)

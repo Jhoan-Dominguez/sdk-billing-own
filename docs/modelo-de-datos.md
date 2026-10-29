@@ -18,7 +18,8 @@ users 1───* purchases 1───* purchase_items
   ├──* mailbox_connections ───────────────────────────────┘
   ├──* agent_settings.updated_by (SET NULL)
   ├──* ml_training_runs (owner_id NULL = modelo general) 1───* ml_models.run_id (SET NULL)
-  └──* ml_models (owner_id NULL = modelo general)
+  ├──* ml_models (owner_id NULL = modelo general) 1───* spend_forecasts.*_model_id (SET NULL)
+  └──* spend_forecasts (una por cliente, moneda y mes)
 
 admin_audit_log (sin claves foráneas: sobrevive al borrado de los usuarios)
 ```
@@ -186,13 +187,23 @@ NULL = general), `algorithm`, `params JSON`, `data_fingerprint` (hash de los dat
 
 ### `ForecastModel` → `ml_models`
 
-Un modelo entrenado. `scope` (índice), `owner_id` (FK `ON DELETE CASCADE`, índice), `algorithm`,
+Un modelo entrenado. `scope` (índice), `owner_id` (FK `ON DELETE CASCADE`, índice), `currency`
+(la serie del cliente; NULL en el general), `algorithm`,
 `version`, `run_id` (FK `ml_training_runs.id` `ON DELETE SET NULL`), `artifact_key` (archivo del
 modelo general en el `FileStorage`), `params JSON` (parámetros del modelo de un cliente),
 `features JSON`, `metrics JSON` (`mape`, `mae`, `mase`, `coverage`), `status` (`active` |
 `archived`: uno activo por alcance y cliente), `train_from` / `train_to`, `n_samples`,
 `created_at` (fecha de entrenamiento). Al borrar un usuario se borran sus filas (cascada) y sus
 archivos (`users.delete_account`).
+
+### `SpendForecast` → `spend_forecasts`
+
+Predicción del gasto de un cliente en una moneda para un mes. `owner_id` (FK `ON DELETE
+CASCADE`), `currency`, `period` (primer día del mes), `horizon` (meses desde el último mes
+completo; 1 = el mes en curso), `p10` / `p50` / `p90` (`Numeric(12,2)`), `user_weight` (peso del
+modelo del cliente), `global_model_id` / `user_model_id` (FK `ml_models.id` `ON DELETE SET NULL`),
+`actual` (gasto real al cerrarse el mes), `predicted_at`. Índice único
+`(owner_id, currency, period)`. Se reescribe hasta que el mes empieza; después queda fija.
 
 ## Esquemas no persistidos (`pydantic`)
 
@@ -217,6 +228,7 @@ pendientes al arrancar (`bootstrap.init_database()`), y también el worker.
 | `0005` | `mailbox_connections`; `attachments.message_id`, `mailbox_id` e índice único |
 | `0006` | Valores guardados en inglés: `users.role` (`customer`), `purchases.source` y `attachments.kind` (`bank`, `image`), y en `extraction_meta` `document_type`, `method`, `bank.transaction_type` y `bank.card_type` |
 | `0007` | `users.disabled_at`; `admin_audit_log`, `ml_training_runs` y `ml_models` |
+| `0008` | `spend_forecasts`; `ml_models.currency` |
 
 Las migraciones usan `op.batch_alter_table` para que funcionen también en SQLite. Para crear
 una nueva: `.venv/bin/alembic revision -m "descripcion"` y escribir `upgrade`/`downgrade` a

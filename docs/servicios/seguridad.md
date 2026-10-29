@@ -48,7 +48,11 @@ Definido en `domain/security.py` (`PURPOSES`):
 | Desactivar 2FA (`remove_otp`) | ✔ | ✔ | La app (API de administración) |
 | Eliminar la cuenta (`delete_account`) | ✔ | ✔ si lo tiene activado | La app |
 
-Las cuentas de administrador no pueden eliminarse a sí mismas (`CANNOT_SELF_DELETE_ROLES`).
+Las cuentas de administrador no pueden eliminarse a sí mismas (`CANNOT_SELF_DELETE_ROLES`): lo
+hace otro administrador desde **Usuarios**, que tampoco puede actuar sobre su propia cuenta y
+siempre deja al menos un administrador activo. Las acciones de un administrador sobre otras
+cuentas (bloquear, quitar 2FA, forzar cambio de contraseña…) no piden correo ni código: quedan
+en la auditoría. Ver [administracion.md](../aplicacion/administracion.md).
 
 Parámetros: enlace y solicitud válidos 30 min (`CONFIRMATION_TTL`), un correo nuevo por
 acción cada 60 s como máximo (`RESEND_COOLDOWN`), reautenticación de hace menos de 5 min

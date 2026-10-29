@@ -17,9 +17,10 @@ de la carpeta.
 |---|---|
 | `<uuid>.<ext>` | Archivo original de una factura o notificación (`Attachment.stored_name`) |
 | `avatars/<uuid>.png` | Avatar (256×256, recortado al centro, sin EXIF) |
+| `models/global/<versión>.json` | Modelo general de predicción (ver [modelos-de-prediccion.md](../modelos-de-prediccion.md)) |
 
 La base no borra archivos: los casos de uso lo hacen al borrar compras, descartar borradores,
-cambiar el avatar o eliminar la cuenta. Para AWS se añadiría un adaptador S3
+cambiar el avatar, eliminar la cuenta o retirar versiones antiguas del modelo general. Para AWS se añadiría un adaptador S3
 (`BILLING_STORAGE=s3`) sin tocar los casos de uso.
 
 ## Identidad (Keycloak)
