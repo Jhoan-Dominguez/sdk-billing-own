@@ -20,7 +20,7 @@ CARD_HEIGHT = 380  # todas las tarjetas de gráfico miden lo mismo
 CHART_HEIGHT = 290
 
 viewer = current_viewer()
-month, owner, _ = page_header(viewer, "Resumen general")
+month, owner = page_header(viewer, "Resumen general")
 history_months = last_months(12, date.fromisoformat(f"{month}-01"))
 previous_month = history_months[-2]
 

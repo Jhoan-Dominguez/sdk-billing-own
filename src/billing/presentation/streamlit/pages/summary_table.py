@@ -15,8 +15,7 @@ from billing.presentation.streamlit.components.layout import flash, page_header
 from billing.presentation.streamlit.components.session import current_viewer
 
 viewer = current_viewer()
-month, owner, _ = page_header(viewer, "Tabla resumen")
-show_owner = viewer.sees_all and owner is None
+month, owner = page_header(viewer, "Tabla resumen")
 
 # --- Diálogos -----------------------------------------------------------------
 # Quedan abiertos mientras su clave en session_state esté puesta; así sobreviven a los
@@ -93,7 +92,6 @@ with bootstrap.unit_of_work() as uow:
         [
             {
                 "id": p.id,
-                "Cliente": p.owner.display_name,
                 "Fecha": p.purchase_date,
                 "Comercio": p.vendor,
                 "Categoría": p.category,
@@ -107,7 +105,6 @@ with bootstrap.unit_of_work() as uow:
         ],
         columns=[
             "id",
-            "Cliente",
             "Fecha",
             "Comercio",
             "Categoría",
@@ -118,8 +115,6 @@ with bootstrap.unit_of_work() as uow:
             "Archivos",
         ],
     )
-    if not show_owner:
-        df = df.drop(columns="Cliente")
     selection = st.dataframe(
         df,
         hide_index=True,
@@ -167,22 +162,19 @@ with bootstrap.unit_of_work() as uow:
     st.divider()
     title, actions = st.columns([3, 1], vertical_alignment="center")
     title.subheader(f"{p.vendor} · {money(p.total, p.currency)}")
-    if not viewer.can_modify(p.owner_id):
-        actions.caption(f":material/visibility: Solo lectura · compra de {p.owner.display_name}")
-    else:
-        b1, b2 = actions.columns(2)
-        if b1.button("Editar", icon=":material/edit:", width="stretch"):
-            st.session_state.pop("adding", None)
-            st.session_state["editing"] = p.id
-        if st.session_state.get("editing") == p.id:
-            edit_dialog(p.id)
-        with b2.popover("Eliminar", icon=":material/delete:", width="stretch"):
-            st.write("¿Eliminar esta compra y sus archivos?")
-            if st.button("Sí, eliminar", key="confirm-delete"):
-                vendor = p.vendor
-                purchase_service.delete(uow, bootstrap.file_storage(), p)
-                flash(f"Compra en {vendor} eliminada")
-                st.rerun()
+    b1, b2 = actions.columns(2)
+    if b1.button("Editar", icon=":material/edit:", width="stretch"):
+        st.session_state.pop("adding", None)
+        st.session_state["editing"] = p.id
+    if st.session_state.get("editing") == p.id:
+        edit_dialog(p.id)
+    with b2.popover("Eliminar", icon=":material/delete:", width="stretch"):
+        st.write("¿Eliminar esta compra y sus archivos?")
+        if st.button("Sí, eliminar", key="confirm-delete"):
+            vendor = p.vendor
+            purchase_service.delete(uow, bootstrap.file_storage(), p)
+            flash(f"Compra en {vendor} eliminada")
+            st.rerun()
 
     info, files = st.columns([3, 2], gap="large")
     with info:
@@ -190,7 +182,6 @@ with bootstrap.unit_of_work() as uow:
             "\n".join(
                 f"- **{label}:** {value}"
                 for label, value in [
-                    ("Cliente", p.owner.display_name if viewer.sees_all else None),
                     ("Fecha", p.purchase_date.strftime("%d/%m/%Y")),
                     ("Categoría", p.category),
                     ("N.º de factura", p.invoice_number),

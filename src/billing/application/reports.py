@@ -1,4 +1,4 @@
-"""Agregados para los resúmenes y comparativas."""
+"""Agregados para los resúmenes."""
 
 from collections import defaultdict
 from decimal import Decimal

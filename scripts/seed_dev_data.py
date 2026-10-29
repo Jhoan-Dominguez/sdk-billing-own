@@ -113,8 +113,8 @@ PROFILES = [
         "admin@billing.example.com",
         "Administrador Compras",
         ADMIN,
-        {"Servicios": 3, "Tecnología": 2, "Restaurantes": 1},
-        (2, 4),
+        {},
+        (0, 0),  # el administrador no lleva compras
     ),
     Profile(  # familia: mucho supermercado, gasto estable
         "8f1c2a3e-0000-4000-8000-000000000101",

@@ -1,5 +1,5 @@
-"""Configuración: perfil, seguridad, cuenta, correo bancario, preferencias, categorías
-y (administradores) agentes IA.
+"""Configuración: perfil, seguridad, cuenta, correo bancario y preferencias (quien lleva
+compras), categorías y (administradores) agentes IA.
 
 Todo actúa sobre el usuario autenticado (viewer.user_id); nunca sobre otro. Las
 pestañas grandes viven en components/settings/.
@@ -29,18 +29,23 @@ st.title("Configuración")
 # Vuelta de los enlaces de confirmación, de la verificación 2FA o de Keycloak.
 security.handle_return(ctx)
 
-labels = [
-    ":material/person: Perfil",
-    ":material/shield_lock: Seguridad",
-    ":material/badge: Cuenta",
-    ":material/forward_to_inbox: Correo bancario",
-    ":material/tune: Preferencias",
-    ":material/category: Categorías",
-]
-if viewer.manages_agents:
-    labels.append(":material/smart_toy: Agentes IA")
-tabs = st.tabs(labels)
-profile_tab, security_tab, account_tab, mailbox_tab, prefs_tab, categories_tab = tabs[:6]
+labels = {
+    "profile": ":material/person: Perfil",
+    "security": ":material/shield_lock: Seguridad",
+    "account": ":material/badge: Cuenta",
+    "mailbox": ":material/forward_to_inbox: Correo bancario",
+    "prefs": ":material/tune: Preferencias",
+    "categories": ":material/category: Categorías",
+    "agents": ":material/smart_toy: Agentes IA",
+}
+if not viewer.tracks_purchases:
+    del labels["mailbox"], labels["prefs"]
+if not viewer.manages_agents:
+    del labels["agents"]
+tabs = dict(zip(labels, st.tabs(list(labels.values())), strict=True))
+profile_tab, security_tab, account_tab, categories_tab = (
+    tabs[k] for k in ("profile", "security", "account", "categories")
+)
 
 # --- Perfil ---------------------------------------------------------------------
 
@@ -103,54 +108,61 @@ with security_tab:
 with account_tab:
     account.render(ctx)
 
-with mailbox_tab:
-    mailboxes.render(ctx)
+if "mailbox" in tabs:
+    with tabs["mailbox"]:
+        mailboxes.render(ctx)
 
 # --- Preferencias ---------------------------------------------------------------
 
-with prefs_tab, bootstrap.unit_of_work() as uow:
-    user = user_service.get(uow, viewer.user_id)
-    names = [c.name for c in category_service.visible_to(uow, owner_id=viewer.user_id)]
-    with st.container(border=True):
-        st.subheader("Valores por defecto")
-        st.caption("Se usan al registrar compras nuevas y en los resúmenes.")
-        with st.form("preferences", enter_to_submit=False):
-            current = user_service.currency(user)
-            options = CURRENCIES if current in CURRENCIES else [current, *CURRENCIES]
-            c1, c2, c3 = st.columns(3)
-            currency = c1.selectbox("Moneda preferida", options, index=options.index(current), accept_new_options=True)
-            payment = c2.selectbox(
-                "Método de pago",
-                PAYMENT_METHODS,
-                index=PAYMENT_METHODS.index(user.default_payment_method)
-                if user.default_payment_method in PAYMENT_METHODS
-                else None,
-                placeholder="Sin especificar",
-            )
-            category = c3.selectbox(
-                "Categoría",
-                names,
-                index=names.index(user.default_category) if user.default_category in names else None,
-                placeholder="Sin especificar",
-            )
-            if st.form_submit_button("Guardar preferencias", type="primary", icon=":material/save:"):
-                try:
-                    user_service.update_preferences(
-                        uow, user, currency=currency, payment_method=payment, category=category
-                    )
-                except ValidationError as e:
-                    uow.rollback()
-                    st.error(str(e), icon=":material/error:")
-                else:
-                    flash("Preferencias guardadas")
-                    st.rerun()
+if "prefs" in tabs:
+    with tabs["prefs"], bootstrap.unit_of_work() as uow:
+        user = user_service.get(uow, viewer.user_id)
+        names = [c.name for c in category_service.visible_to(uow, owner_id=viewer.user_id)]
+        with st.container(border=True):
+            st.subheader("Valores por defecto")
+            st.caption("Se usan al registrar compras nuevas y en los resúmenes.")
+            with st.form("preferences", enter_to_submit=False):
+                current = user_service.currency(user)
+                options = CURRENCIES if current in CURRENCIES else [current, *CURRENCIES]
+                c1, c2, c3 = st.columns(3)
+                currency = c1.selectbox(
+                    "Moneda preferida", options, index=options.index(current), accept_new_options=True
+                )
+                payment = c2.selectbox(
+                    "Método de pago",
+                    PAYMENT_METHODS,
+                    index=PAYMENT_METHODS.index(user.default_payment_method)
+                    if user.default_payment_method in PAYMENT_METHODS
+                    else None,
+                    placeholder="Sin especificar",
+                )
+                category = c3.selectbox(
+                    "Categoría",
+                    names,
+                    index=names.index(user.default_category) if user.default_category in names else None,
+                    placeholder="Sin especificar",
+                )
+                if st.form_submit_button("Guardar preferencias", type="primary", icon=":material/save:"):
+                    try:
+                        user_service.update_preferences(
+                            uow, user, currency=currency, payment_method=payment, category=category
+                        )
+                    except ValidationError as e:
+                        uow.rollback()
+                        st.error(str(e), icon=":material/error:")
+                    else:
+                        flash("Preferencias guardadas")
+                        st.rerun()
 
 # --- Categorías -----------------------------------------------------------------
 
 with categories_tab, bootstrap.unit_of_work() as uow:
-    # Un admin elige qué gestiona: las generales (de todos) o las suyas.
+    # Quien gestiona las generales y lleva compras elige qué gestiona: las generales o las
+    # suyas. Un administrador sin compras solo gestiona las generales.
     scope_owner: str | None = viewer.user_id
-    if viewer.manages_global_categories:
+    if viewer.manages_global_categories and not viewer.tracks_purchases:
+        scope_owner = None
+    elif viewer.manages_global_categories:
         scope = st.segmented_control(
             "Ámbito",
             ["Generales", "Mis categorías"],
@@ -244,6 +256,6 @@ with categories_tab, bootstrap.unit_of_work() as uow:
 
 # --- Agentes IA (administradores) -----------------------------------------------
 
-if viewer.manages_agents:
-    with tabs[6]:
+if "agents" in tabs:
+    with tabs["agents"]:
         agents.render(ctx)

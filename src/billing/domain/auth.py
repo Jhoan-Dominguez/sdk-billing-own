@@ -16,15 +16,12 @@ ROLES = (ADMIN, CUSTOMER)
 
 ROLE_LABELS = {ADMIN: "Administrador", CUSTOMER: "Cliente"}
 
-# Páginas visibles por rol (presentation/streamlit/pages/).
+# Páginas visibles por rol (presentation/streamlit/pages/). El administrador no lleva
+# compras ni ve las de los clientes: solo comparte con ellos Configuración (su cuenta).
 PAGES_BY_ROLE: dict[str, tuple[str, ...]] = {
-    ADMIN: ("summary", "summary_table", "imports", "comparison", "settings"),
+    ADMIN: ("users", "ml_models", "system", "audit", "data_model", "settings"),
     CUSTOMER: ("summary", "summary_table", "imports", "settings"),
 }
-
-# Roles que pueden ver los datos de todos los usuarios (análisis y comparativas).
-# El resto solo ve lo que es suyo.
-SEES_ALL_ROLES = frozenset({ADMIN})
 
 # Roles que administran las cuentas de los demás (bloquear, eliminar, exportar...),
 # ven el estado del sistema, los modelos de predicción y el modelo de datos. Nunca ven
@@ -55,20 +52,8 @@ class Viewer:
     role: str
     name: str
 
-    @property
-    def sees_all(self) -> bool:
-        return self.role in SEES_ALL_ROLES
-
-    def owner_filter(self, selected: str | None = None) -> str | None:
-        """`owner_id` con el que filtrar consultas; None = sin filtro (todos).
-
-        `selected` es el cliente que eligió un administrador (None = todos). Para el
-        resto de roles se ignora: siempre quedan limitados a sus propios datos.
-        """
-        return selected if self.sees_all else self.user_id
-
     def can_modify(self, owner_id: str) -> bool:
-        # Ver datos ajenos no implica poder cambiarlos: solo el dueño edita o borra.
+        # Solo el dueño edita o borra sus datos.
         return owner_id == self.user_id
 
     @property

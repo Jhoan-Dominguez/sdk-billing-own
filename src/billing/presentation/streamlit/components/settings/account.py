@@ -33,17 +33,17 @@ def render(ctx: SettingsContext) -> None:
                 "Último inicio de sesión": f"{user.last_login_at:%d/%m/%Y %H:%M}",
                 "Acceso con": ", ".join(["Correo y contraseña", *[p.capitalize() for p in providers]]),
                 "Verificación en dos pasos": "Activada" if otp_enabled else "Desactivada",
-                "Compras registradas": f"{sum(usage.values()):,}",
+                "Compras registradas": f"{sum(usage.values()):,}" if viewer.tracks_purchases else None,
                 "ID de usuario": f"`{user.id}`",
             }
-            st.markdown("\n".join(f"- **{label}:** {value}" for label, value in info.items()))
+            st.markdown("\n".join(f"- **{label}:** {value}" for label, value in info.items() if value is not None))
 
         with st.container(border=True):
             st.subheader(":red[Eliminar cuenta]")
             if not viewer.can_delete_own_account:
                 st.caption(
                     "Las cuentas de administrador no se pueden eliminar desde aquí; pide a otro "
-                    "administrador que lo haga desde la consola de Keycloak."
+                    "administrador que lo haga desde la página Usuarios."
                 )
                 return
             st.write(

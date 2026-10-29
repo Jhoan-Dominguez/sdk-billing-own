@@ -52,33 +52,58 @@ if st.session_state.get("synced_user") != viewer.user_id:
     st.session_state["synced_user"] = viewer.user_id
 st.session_state["viewer"] = viewer  # las páginas lo leen con session.current_viewer()
 
+user = current_user(viewer)
+if user is not None and user.is_disabled:
+    # Bloqueada por un administrador: Keycloak ya no deja iniciar sesión, pero una sesión
+    # abierta de Streamlit seguiría viva hasta aquí.
+    st.error("Tu cuenta está bloqueada. Contacta con un administrador.", icon=":material/block:")
+    st.button("Cerrar sesión", on_click=logout, icon=":material/logout:")
+    st.stop()
+
 # --- Navegación según el rol -------------------------------------------------
 
-with bootstrap.unit_of_work() as uow:
-    pending = len(imports.drafts(uow, owner_id=viewer.user_id))
+pending = 0
+if auth.can_view(viewer.role, "imports"):
+    with bootstrap.unit_of_work() as uow:
+        pending = len(imports.drafts(uow, owner_id=viewer.user_id))
 
-
-def page(name: str, url_path: str, title: str, icon: str, **kwargs) -> st.Page:
-    # `name` es el archivo en pages/; `url_path`, la URL que ve el usuario (en español).
-    return st.Page(PAGES_DIR / f"{name}.py", title=title, icon=icon, url_path=url_path, **kwargs)
-
-
-pages = {
-    "summary": page("summary", "resumen", "Resumen general", ":material/dashboard:", default=True),
-    "summary_table": page("summary_table", "tabla_resumen", "Tabla resumen", ":material/table_view:"),
-    "imports": page(
-        "imports",
+# Archivo en pages/ -> (URL en español, título, icono).
+PAGE_SPECS = {
+    "summary": ("resumen", "Resumen general", ":material/dashboard:"),
+    "summary_table": ("tabla_resumen", "Tabla resumen", ":material/table_view:"),
+    "imports": (
         "importar",
         f"Importar facturas ({pending})" if pending else "Importar facturas",
         ":material/document_scanner:",
     ),
-    "comparison": page("comparison", "comparativa", "Comparativa de clientes", ":material/groups:"),
-    "settings": page("settings", "configuracion", "Configuración", ":material/settings:"),
+    "users": ("usuarios", "Usuarios", ":material/manage_accounts:"),
+    "ml_models": ("modelos", "Modelos de predicción", ":material/model_training:"),
+    "system": ("sistema", "Estado del sistema", ":material/monitor_heart:"),
+    "audit": ("auditoria", "Auditoría", ":material/history:"),
+    "data_model": ("modelo-de-datos", "Modelo de datos", ":material/schema:"),
+    "settings": ("configuracion", "Configuración", ":material/settings:"),
 }
-current_page = st.navigation([p for name, p in pages.items() if auth.can_view(viewer.role, name)])
+ADMIN_SECTION = ("users", "ml_models", "system", "audit", "data_model")
+
+visible = [name for name in PAGE_SPECS if auth.can_view(viewer.role, name)]
+pages = {
+    name: st.Page(
+        PAGES_DIR / f"{name}.py",
+        url_path=PAGE_SPECS[name][0],
+        title=PAGE_SPECS[name][1],
+        icon=PAGE_SPECS[name][2],
+        default=name == visible[0],  # la primera página del rol es la de inicio
+    )
+    for name in visible
+}
+admin_pages = [page for name, page in pages.items() if name in ADMIN_SECTION]
+if admin_pages:
+    others = [page for name, page in pages.items() if name not in ADMIN_SECTION]
+    current_page = st.navigation({"Administración": admin_pages, "Cuenta": others})
+else:
+    current_page = st.navigation(list(pages.values()))
 
 with st.sidebar:
-    user = current_user(viewer)
     pic, who = st.columns([1, 3], vertical_alignment="center")
     with pic:
         avatar(user, viewer.name)
