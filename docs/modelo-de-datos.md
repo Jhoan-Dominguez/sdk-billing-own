@@ -16,7 +16,11 @@ users 1───* purchases 1───* purchase_items
   ├──* categories (owner_id NULL = general)               │
   ├──* security_confirmations                             │
   ├──* mailbox_connections ───────────────────────────────┘
-  └──* agent_settings.updated_by (SET NULL)
+  ├──* agent_settings.updated_by (SET NULL)
+  ├──* ml_training_runs (owner_id NULL = modelo general) 1───* ml_models.run_id (SET NULL)
+  └──* ml_models (owner_id NULL = modelo general)
+
+admin_audit_log (sin claves foráneas: sobrevive al borrado de los usuarios)
 ```
 
 ## Entidades y tablas
@@ -37,8 +41,9 @@ sesión (`users.sync_from_claims`).
 | `avatar_name` | `String(64)` | sí | Archivo del avatar (`avatars/<nombre>`) |
 | `preferred_currency` | `String(3)` | sí | Moneda preferida |
 | `default_payment_method` / `default_category` | `String(50)` | sí | Valores por defecto del formulario |
+| `disabled_at` | `DateTime` | sí | Bloqueada por un administrador (además de deshabilitada en Keycloak) |
 
-Propiedad: `display_name` (nombre o usuario).
+Propiedades: `display_name` (nombre o usuario), `is_disabled`.
 
 ### `Purchase` → `purchases`
 
@@ -166,6 +171,29 @@ del entorno.
 
 Propiedad: `senders` (lista normalizada).
 
+### `AuditEntry` → `admin_audit_log`
+
+`id`, `actor_id` / `actor_label` (quién), `action` (índice; `domain/admin.py`),
+`target_user_id` (índice) / `target_label` (a quién), `details JSON`, `created_at` (índice).
+Sin claves foráneas: guarda las etiquetas porque los usuarios pueden borrarse.
+
+### `ForecastTrainingRun` → `ml_training_runs`
+
+Un entrenamiento. `scope` (`global` | `user`), `owner_id` (FK `users.id` `ON DELETE CASCADE`;
+NULL = general), `algorithm`, `params JSON`, `data_fingerprint` (hash de los datos usados),
+`n_samples`, `status` (`running` | `succeeded` | `failed`), `error`, `finished_at`,
+`created_at` (inicio). Los datos de entrenamiento no se copian: se derivan de `purchases`.
+
+### `ForecastModel` → `ml_models`
+
+Un modelo entrenado. `scope` (índice), `owner_id` (FK `ON DELETE CASCADE`, índice), `algorithm`,
+`version`, `run_id` (FK `ml_training_runs.id` `ON DELETE SET NULL`), `artifact_key` (archivo del
+modelo general en el `FileStorage`), `params JSON` (parámetros del modelo de un cliente),
+`features JSON`, `metrics JSON` (`mape`, `mae`, `mase`, `coverage`), `status` (`active` |
+`archived`: uno activo por alcance y cliente), `train_from` / `train_to`, `n_samples`,
+`created_at` (fecha de entrenamiento). Al borrar un usuario se borran sus filas (cascada) y sus
+archivos (`users.delete_account`).
+
 ## Esquemas no persistidos (`pydantic`)
 
 - `InvoiceData` / `ExtractedItem` (`domain/invoice.py`): salida del agente de facturas.
@@ -188,6 +216,7 @@ pendientes al arrancar (`bootstrap.init_database()`), y también el worker.
 | `0004` | `agent_settings`; `attachments.extraction_meta` |
 | `0005` | `mailbox_connections`; `attachments.message_id`, `mailbox_id` e índice único |
 | `0006` | Valores guardados en inglés: `users.role` (`customer`), `purchases.source` y `attachments.kind` (`bank`, `image`), y en `extraction_meta` `document_type`, `method`, `bank.transaction_type` y `bank.card_type` |
+| `0007` | `users.disabled_at`; `admin_audit_log`, `ml_training_runs` y `ml_models` |
 
 Las migraciones usan `op.batch_alter_table` para que funcionen también en SQLite. Para crear
 una nueva: `.venv/bin/alembic revision -m "descripcion"` y escribir `upgrade`/`downgrade` a

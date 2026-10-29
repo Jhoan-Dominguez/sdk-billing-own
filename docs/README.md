@@ -21,6 +21,7 @@ Documentación de construcción y funcionamiento de **Registro de compras**. El
 | **Aplicación** | |
 | [aplicacion/casos-de-uso.md](aplicacion/casos-de-uso.md) | Referencia de cada módulo de `application/` y sus funciones |
 | [aplicacion/interfaz.md](aplicacion/interfaz.md) | Páginas Streamlit, componentes, permisos por rol y convenciones de estado |
+| [aplicacion/administracion.md](aplicacion/administracion.md) | Panel del administrador: cuentas, exportación/restauración, auditoría, estado, modelos, modelo de datos |
 | **Infraestructura** | |
 | [infraestructura/docker.md](infraestructura/docker.md) | Servicios de Docker Compose, imágenes, puertos, volúmenes, healthchecks |
 | [infraestructura/keycloak.md](infraestructura/keycloak.md) | Realm, clientes, roles, usuarios, flujos de autenticación, temas, SMTP |

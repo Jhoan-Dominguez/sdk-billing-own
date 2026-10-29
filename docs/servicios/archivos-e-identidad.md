@@ -45,11 +45,21 @@ Configuración del servidor en [infraestructura/keycloak.md](../infraestructura/
 
 | Rol | Páginas | Ve | Modifica | Otros permisos |
 |---|---|---|---|---|
-| `admin` | todas, incluida Comparativa de clientes | datos de todos (`SEES_ALL_ROLES`) | solo lo suyo | categorías generales, agentes IA; no puede borrar su cuenta |
-| `customer` | Resumen, Tabla, Importar, Configuración | solo lo suyo | solo lo suyo | categorías personales |
+| `admin` | Usuarios, Modelos de predicción, Estado del sistema, Auditoría, Modelo de datos, Configuración | cifras de uso de todos, nunca sus compras | las cuentas de los demás (`MANAGES_USERS_ROLES`) | categorías generales, agentes IA; no puede borrar su cuenta ni actuar sobre ella desde Usuarios |
+| `customer` | Resumen, Tabla, Importar, Configuración | solo lo suyo | solo lo suyo (`TRACKS_PURCHASES_ROLES`) | categorías personales, buzones bancarios, preferencias |
 
-`Viewer.owner_filter(selected)` devuelve el filtro de dueño que deben usar las consultas;
-`can_modify(owner_id)` solo permite al dueño.
+Las consultas de compras siempre filtran por `viewer.user_id`; `can_modify(owner_id)` solo
+permite al dueño.
+
+### Administración de otras cuentas (`UserDirectory`, `ManagedAccount`)
+
+`KeycloakUserDirectory` (`bootstrap.user_directory()`, solo en páginas con
+`viewer.manages_users`) lista el estado de todas las cuentas, las busca por correo y las crea.
+`KeycloakManagedAccount` amplía `KeycloakAccountAdmin` con `representation()`, `set_enabled`,
+`set_role` (vía `role-mappings/realm/available`, sin `view-realm`) y `send_actions_email`
+(`execute-actions-email`, que vuelve a `/configuracion`). Un 404 lanza `IdentityNotFound`;
+`delete()` lo ignora para poder limpiar los datos de una cuenta ya borrada en Keycloak.
+Detalle en [administracion.md](../aplicacion/administracion.md).
 
 ## Cifrado de secretos (`SecretCipher`)
 

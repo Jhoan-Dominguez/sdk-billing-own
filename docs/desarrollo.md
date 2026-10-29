@@ -84,7 +84,7 @@ Comprobaciones rápidas:
 - Ruff (lint, isort y formato) con líneas de 120 caracteres; `make lint` antes de commitear.
   pre-commit solo ve archivos que git conoce (`git add -N` para los nuevos).
 - Nada de lógica de negocio ni SQL en las páginas: casos de uso en `application/`.
-- Toda consulta de datos de usuario recibe `owner_id` desde `viewer.owner_filter()`.
+- Toda consulta de datos de usuario recibe `owner_id` (`viewer.user_id`); el administrador solo ve cifras de uso.
 - Los importes son `Decimal` (`Numeric(12,2)`) y nunca se suman monedas distintas.
 - Cambios de esquema = migración nueva + `alembic check` sin diferencias.
 - Botones destructivos con clave `confirm-delete*` (se pintan en rojo).

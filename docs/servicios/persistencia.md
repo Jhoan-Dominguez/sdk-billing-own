@@ -40,11 +40,18 @@ with bootstrap.unit_of_work() as uow:
 | `categories` | `get`, `add`, `delete`, `visible_to(owner_id)`, `find_name(name, owner_id, exclude_id)`, `owners_with_personal(name)` |
 | `confirmations` | `get`, `add`, `by_token_hash`, `by_state_hash`, `for_user`, `delete_for_user` |
 | `agent_settings` | `get`, `add`, `delete`, `list` |
-| `mailboxes` | `get`, `add`, `delete`, `for_owner`, `enabled` |
+| `mailboxes` | `get`, `add`, `delete`, `for_owner`, `enabled`, `all` |
+| `audit_log` | `add`, `list(limit, action, target_user_id)` |
+| `forecast_models` | `get`, `add`, `delete`, `for_owner`, `list(scope, status)` |
+| `forecast_runs` | `get`, `add`, `list(limit)` |
 
 Convenciones que todo motor debe respetar:
 
-- `owner_id=None` significa «todos» y solo debe venir de `Viewer.owner_filter()`.
+- `owner_id=None` significa «todos» y solo lo usan casos de uso de administración que no
+  muestran el contenido. Las cifras del panel salen de `purchases.count_by_owner`,
+  `purchases.monthly_count_by_source`, `attachments.usage_by_owner` y `attachments.extraction_log`.
+- `describe_schema()` (opcional del `PersistenceBackend`) devuelve un `domain.schema.SchemaInfo`
+  o `None` si el motor no tiene esquema.
 - Las relaciones `purchase.items`, `purchase.attachments` y `purchase.owner` deben estar
   disponibles mientras el bloque esté abierto; al confirmar un borrador, añadir el adjunto a
   `purchase.attachments` fija su `purchase_id`.

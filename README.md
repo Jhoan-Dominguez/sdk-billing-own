@@ -8,16 +8,20 @@ Aplicación web para registrar compras mensuales, a mano o importando facturas (
 - **Tabla resumen:** compras del mes con filtro por categoría, detalle, edición, borrado, exportación a CSV y alta de compras nuevas.
 - **Importar facturas:** subir archivos o tomar una foto. Un agente LLM (Claude, GPT, Gemini u Ollama) o las reglas locales extraen los datos, que quedan en borrador para revisarlos. Avisa de archivos repetidos, de incoherencias en los totales y de compras parecidas.
 - **Notificaciones bancarias:** alertas de Bancolombia, Davivienda, BBVA, Banco de Bogotá y Nequi, subidas como `.eml` o leídas de tu buzón (Gmail, Outlook o IMAP) cada pocos minutos.
-- **Comparativa de clientes** (solo administradores): gasto por cliente, mapa de calor mensual y variación respecto al mes anterior.
+- **Administración** (solo administradores):
+  - Usuarios: estado y cifras de uso de cada cuenta; bloquear, cambiar rol, cerrar sesiones, forzar cambio de contraseña, quitar 2FA, invitar, eliminar, y **exportar** todos sus datos a un ZIP con el que **restaurarlo** después.
+  - Modelos de predicción: modelos entrenados, versiones y métricas (acierto, error, MAE, MASE, cobertura).
+  - Estado del sistema: servicios, buzones y worker, agentes IA, uso y retención de datos.
+  - Auditoría de las acciones de los administradores y modelo de datos (diagrama, tablas y migraciones).
 - **Configuración:**
   - Perfil (avatar y nombre).
   - Seguridad: contraseña, 2FA y sesiones.
   - Cuenta: información y eliminación de la cuenta.
-  - Correo bancario: buzones conectados.
-  - Preferencias y categorías propias.
+  - Correo bancario: buzones conectados (clientes).
+  - Preferencias (clientes) y categorías.
   - Agentes IA (solo administradores): proveedor y modelo de cada agente.
 
-Un **cliente** ve solo sus datos. Un **administrador** ve los de todos (en solo lectura los ajenos), gestiona las categorías generales y elige los agentes IA. Las cuentas nuevas, creadas con «Crear cuenta» o con Google, reciben el rol `customer`.
+Un **cliente** lleva sus compras y ve solo sus datos. Un **administrador** no lleva compras ni ve las de los clientes (solo cifras de uso): administra las cuentas, gestiona las categorías generales y elige los agentes IA. Las cuentas nuevas, creadas con «Crear cuenta» o con Google, reciben el rol `customer`.
 
 ### Seguridad
 

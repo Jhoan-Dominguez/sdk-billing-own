@@ -96,7 +96,9 @@ src/billing/
 │   ├── purchases.py, imports.py, categories.py, users.py, reports.py
 │   ├── security/                 confirmations.py, account_actions.py
 │   ├── agents/                   base.py, registry.py, settings.py, prompts/*.md
-│   └── bank_emails/              mailboxes.py, sync.py
+│   ├── bank_emails/              mailboxes.py, sync.py
+│   ├── admin/                    accounts.py, backup.py, audit.py, system.py
+│   └── forecasting/              models.py (consulta de modelos de predicción)
 ├── infrastructure/
 │   ├── persistence/              registry.py, sqlalchemy/ (tables, orm, repositorios, migraciones), memory/
 │   ├── llm/                      anthropic, openai (+compatibles y Ollama), gemini, fake, fallback, registry
@@ -107,8 +109,8 @@ src/billing/
 │   └── storage/local.py          archivos en disco
 ├── presentation/streamlit/
 │   ├── app.py                    entrada: login, navegación por rol, barra lateral
-│   ├── pages/                    resumen, tabla_resumen, importar, comparativa, configuracion
-│   ├── components/               session, layout, formatting, forms, files, profile, settings/
+│   ├── pages/                    summary, summary_table, imports, settings; admin: users, ml_models, system, audit, data_model
+│   ├── components/               session, layout, formatting, forms, files, profile, admin, settings/
 │   └── assets/styles.css
 └── worker/__main__.py            `python -m billing.worker`: sincroniza buzones IMAP
 infra/
@@ -129,7 +131,7 @@ docs/                             esta documentación
    (`users.sync_from_claims`) y aplica las migraciones una vez por proceso.
 3. `st.navigation` solo recibe las páginas permitidas para el rol (`auth.PAGES_BY_ROLE`).
 4. La página pide adaptadores a `bootstrap`, abre `with bootstrap.unit_of_work() as uow:`
-   y llama a los casos de uso con `owner_id = viewer.owner_filter(...)`.
+   y llama a los casos de uso con `owner_id = viewer.user_id`.
 
 ### Importación (borrador → compra)
 
@@ -165,8 +167,9 @@ Detalle en [servicios/seguridad.md](servicios/seguridad.md).
   `SqlAlchemyUnitOfWork.__exit__` usa solo `session.close()` (no `rollback()`) para que los
   objetos leídos sigan siendo legibles fuera del bloque.
 - **Filtro de dueño obligatorio**: toda consulta de datos de usuario recibe `owner_id`
-  (keyword obligatorio); `None` = todos y solo lo produce `Viewer.owner_filter` para roles
-  con `sees_all`.
+  (keyword obligatorio); `None` = todos y solo lo usan casos de uso de administración que no
+  muestran el contenido (p. ej. la purga de borradores). El administrador ve cifras de uso
+  (`count_by_owner`, `usage_by_owner`), nunca compras.
 - **La app nunca ve contraseñas ni secretos TOTP**: todo se hace en pantallas de Keycloak.
 - **Las extracciones nunca bloquean una subida**: si el LLM falla, se usan reglas y se guarda
   el error en el borrador.

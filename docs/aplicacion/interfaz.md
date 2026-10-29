@@ -10,8 +10,11 @@ Código en `src/billing/presentation/streamlit/`. Se arranca con `python -m bill
 2. Con sesión → `Viewer` desde los claims. Sin rol de la app → error y botón de cerrar sesión.
 3. `ensure_database()` aplica las migraciones una vez por proceso (`st.cache_resource`).
 4. Sincroniza el usuario una vez por sesión y guarda el `Viewer` en `st.session_state["viewer"]`.
-5. `st.navigation` con las páginas del rol; «Importar facturas (N)» muestra los borradores pendientes.
-6. Barra lateral: avatar, nombre, rol, cerrar sesión y el lector de facturas activo (proveedor y modelo).
+5. Si el usuario está bloqueado (`users.disabled_at`), error, botón de cerrar sesión y se detiene.
+6. `st.navigation` con las páginas del rol (`PAGE_SPECS`; la primera es la de inicio). Las del
+   administrador van en la sección «Administración». «Importar facturas (N)» muestra los
+   borradores pendientes.
+7. Barra lateral: avatar, nombre, rol, cerrar sesión y el lector de facturas activo (proveedor y modelo).
 
 Cerrar sesión usa `session.logout()`, no `st.logout` directamente: además de borrar la cookie
 y terminar la sesión de Keycloak, vacía `st.session_state` (el `Viewer`, filtros...). Y
@@ -23,11 +26,11 @@ utilizable, sino que se valida otra vez la cookie y se redirige al login.
 
 | Página | Rol | Contenido |
 |---|---|---|
-| `summary.py` (`/resumen`) — Resumen general | todos | Gasto del mes, compras, categoría y comercio principales; barras por mes, categoría, método y comercio (por moneda) |
-| `summary_table.py` (`/tabla_resumen`) — Tabla resumen | todos | Compras del mes con filtro por categoría, detalle con adjuntos, editar, eliminar, exportar CSV y «Agregar compra». Un admin ve las ajenas en solo lectura |
-| `imports.py` (`/importar`) — Importar facturas | todos | Subir archivos o tomar foto; borradores (facturas y alertas bancarias, también las de buzones) con vista previa, datos de extracción, avisos y formulario de confirmación |
-| `comparison.py` (`/comparativa`) — Comparativa de clientes | admin | Gasto por cliente, mapa de calor mensual y variación; una moneda a la vez |
-| `settings.py` (`/configuracion`) — Configuración | todos | Pestañas: Perfil, Seguridad, Cuenta, Correo bancario, Preferencias, Categorías y (admin) Agentes IA |
+| `summary.py` (`/resumen`) — Resumen general | customer | Gasto del mes, compras, categoría y comercio principales; barras por mes, categoría, método y comercio (por moneda) |
+| `summary_table.py` (`/tabla_resumen`) — Tabla resumen | customer | Compras del mes con filtro por categoría, detalle con adjuntos, editar, eliminar, exportar CSV y «Agregar compra» |
+| `imports.py` (`/importar`) — Importar facturas | customer | Subir archivos o tomar foto; borradores (facturas y alertas bancarias, también las de buzones) con vista previa, datos de extracción, avisos y formulario de confirmación |
+| `users.py`, `ml_models.py`, `system.py`, `audit.py`, `data_model.py` | admin | Ver [administracion.md](administracion.md) |
+| `settings.py` (`/configuracion`) — Configuración | todos | Pestañas: Perfil, Seguridad, Cuenta, (customer) Correo bancario y Preferencias, Categorías y (admin) Agentes IA |
 
 ### Pestañas de Configuración (`components/settings/`)
 
@@ -38,7 +41,7 @@ utilizable, sino que se valida otra vez la cookie y se redirige al login.
 | `account.py` | Cuenta | Información (incluye el estado del 2FA) y eliminar la cuenta (correo + código si hay 2FA) |
 | `mailboxes.py` | Correo bancario | Conectar, probar, editar, sincronizar y desconectar buzones IMAP; ayuda para Gmail, Outlook y GreenMail |
 | (página) | Preferencias | Moneda, método de pago y categoría por defecto |
-| (página) | Categorías | Generales (admin) o personales: crear, renombrar, eliminar |
+| (página) | Categorías | Generales (admin) o personales (customer): crear, renombrar, eliminar |
 | `agents.py` | Agentes IA | Estado de proveedores; proveedor y modelo por agente; guardar, restablecer, probar |
 
 `context.py` → `SettingsContext`: viewer, claims, `AccountAdmin`, `AccountActions`,
@@ -54,7 +57,8 @@ final, «Reenviar correo» y «Cancelar solicitud».
 | Módulo | Contenido |
 |---|---|
 | `session.py` | `ensure_database`, `user_claims`, `current_viewer` (detiene la página sin Viewer), `login_screen` |
-| `layout.py` | `apply_styles`, `flash`/`show_flash` (avisos tras `st.rerun`), `page_header` (mes y, para admin, usuario) |
+| `layout.py` | `apply_styles`, `flash`/`show_flash` (avisos tras `st.rerun`), `page_header` (título y mes) |
+| `admin.py` | `require_manager`, `user_directory`, `identity_statuses` (caché de 30 s), `human_bytes`, `when` |
 | `forms.py` | `form_options(viewer)`, `purchase_form(key, values, items, …)` con `st.data_editor` para las líneas |
 | `files.py` | `show_attachment`, `draft_label`, `extraction_info`, `draft_warnings` |
 | `formatting.py` | `month_label`, `money`, `to_float` |

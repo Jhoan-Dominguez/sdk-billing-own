@@ -4,7 +4,7 @@ Funciones sin estado que reciben la unidad de trabajo y los adaptadores que nece
 importan Streamlit ni infraestructura, así que sirven igual a la app web, al worker y a los scripts.
 
 Convención: las funciones que leen datos de usuarios reciben `owner_id` como keyword
-obligatorio (`None` = todos, solo para roles con `sees_all`). Los errores de validación se
+obligatorio (`None` = todos, solo en casos de uso de administración que no muestran el contenido). Los errores de validación se
 lanzan como `domain.errors.ValidationError` con mensajes en español listos para mostrar.
 
 ## `purchases.py` — compras
@@ -89,12 +89,31 @@ Ver [servicios/correos-bancarios.md](../servicios/correos-bancarios.md).
   `create`, `update`, `delete`, `test_connection`.
 - `sync.py`: `SyncReport`, `sync_mailbox`, `sync_all`.
 
+## `admin/` — administración
+
+Ver [administracion.md](administracion.md). Todas las funciones reciben el `Viewer` que actúa
+y lanzan `PermissionDenied` si no tiene `manages_users`.
+
+- `accounts.py`: `AccountRow`, `overview`, `get`, `block`, `unblock`, `delete`, `change_role`,
+  `logout`, `force_password_change`, `remove_otp`, `resend_verification`, `invite`.
+- `backup.py`: `export_user`, `export_filename`, `read_archive`, `plan_restore`, `restore_user`.
+- `audit.py`: `record`, `entries`.
+- `system.py`: `check_services`, `mailbox_health`, `extraction_stats`, `usage_metrics`,
+  `stale_drafts`, `purge_stale_drafts`, `inactive_users`.
+
+## `forecasting/` — predicción del gasto
+
+- `models.py`: `ModelsOverview` (activos, acierto medio, historial por versión) y `overview`.
+
 ## Dominio (`src/billing/domain/`)
 
 | Módulo | Contenido |
 |---|---|
 | `models.py` | Entidades ([modelo de datos](../modelo-de-datos.md)) |
-| `auth.py` | Roles `admin`/`customer`, `PAGES_BY_ROLE`, `Viewer`, `viewer_from_claims`, `primary_role` |
+| `auth.py` | Roles `admin`/`customer`, `PAGES_BY_ROLE`, `Viewer` (`manages_users`, `tracks_purchases`...), `viewer_from_claims`, `primary_role` |
+| `admin.py` | Acciones auditadas (`ACTION_LABELS`), formato y versión de la exportación |
+| `forecasting.py` | Alcances, estados, métricas de los modelos de predicción, `accuracy_pct` |
+| `schema.py` | `SchemaInfo`, `TableInfo`... (vista Modelo de datos) |
 | `security.py` | Propósitos de confirmación y sus parámetros |
 | `invoice.py` | `InvoiceData`, `ExtractionResult`, `consistency_warnings` |
 | `bank.py` | `BankNotification`, `TRANSACTION_TYPES` (`purchase`, `withdrawal`, `transfer`, `payment`, `other`), `transaction_label()` (nombre en español), `parse_date` |
@@ -103,4 +122,4 @@ Ver [servicios/correos-bancarios.md](../servicios/correos-bancarios.md).
 | `files.py` | Tipos de archivo aceptados y `classify` |
 | `periods.py` | `month_key`, `month_bounds`, `last_months` |
 | `values.py` | `clean_str`, `truncate`, `to_decimal`, `CENT` |
-| `errors.py` | `ValidationError`, `UnsupportedFile`, `NotFound` |
+| `errors.py` | `ValidationError`, `UnsupportedFile`, `NotFound`, `PermissionDenied` |
