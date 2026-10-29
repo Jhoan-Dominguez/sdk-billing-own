@@ -10,6 +10,7 @@ from billing.infrastructure.persistence.sqlalchemy.repositories import (
     SqlMailboxRepository,
     SqlPurchaseRepository,
     SqlSecurityConfirmationRepository,
+    SqlSpendForecastRepository,
     SqlUserRepository,
 )
 
@@ -32,6 +33,7 @@ class SqlAlchemyUnitOfWork:
         self.audit_log = SqlAuditRepository(self.session)
         self.forecast_models = SqlForecastModelRepository(self.session)
         self.forecast_runs = SqlForecastRunRepository(self.session)
+        self.forecasts = SqlSpendForecastRepository(self.session)
         return self
 
     def __exit__(self, *exc) -> None:

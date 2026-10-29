@@ -23,6 +23,7 @@ COLLECTIONS = (
     "audit_log",
     "forecast_runs",
     "forecast_models",
+    "forecasts",
 )
 
 

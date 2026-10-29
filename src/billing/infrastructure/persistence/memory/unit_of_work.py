@@ -10,6 +10,7 @@ from billing.infrastructure.persistence.memory.repositories import (
     MemoryForecastRunRepository,
     MemoryMailboxRepository,
     MemoryPurchaseRepository,
+    MemorySpendForecastRepository,
     MemoryUserRepository,
 )
 from billing.infrastructure.persistence.memory.store import MemoryStore
@@ -44,6 +45,7 @@ class MemoryUnitOfWork:
         self.audit_log = MemoryAuditRepository(self._state, self._pending)
         self.forecast_models = MemoryForecastModelRepository(self._state, self._pending)
         self.forecast_runs = MemoryForecastRunRepository(self._state, self._pending)
+        self.forecasts = MemorySpendForecastRepository(self._state, self._pending)
 
     def _assign(self, collection: str, obj) -> None:
         now = datetime.now()

@@ -273,6 +273,7 @@ class ForecastModel:
     algorithm: str
     version: str
     owner_id: str | None = None
+    currency: str | None = None  # la serie del cliente (el general no tiene moneda)
     run_id: int | None = None
     artifact_key: str | None = None
     params: dict | None = None
@@ -284,3 +285,26 @@ class ForecastModel:
     n_samples: int | None = None
     id: int = field(init=False)
     created_at: datetime = field(init=False)  # fecha de entrenamiento
+
+
+@dataclass(eq=False, kw_only=True)
+class SpendForecast:
+    """Predicción del gasto de un cliente en una moneda para un mes.
+
+    Se reescribe en cada entrenamiento mientras el mes no ha empezado; desde que empieza
+    queda fija, y al cerrarse se guarda el gasto real (`actual`) para medir el error de verdad.
+    """
+
+    owner_id: str
+    currency: str
+    period: date  # primer día del mes predicho
+    horizon: int  # meses desde el último mes completo al predecir (1 = el mes en curso)
+    p10: Decimal
+    p50: Decimal
+    p90: Decimal
+    predicted_at: datetime
+    user_weight: float = 0.0  # peso del modelo del cliente en la combinación
+    global_model_id: int | None = None
+    user_model_id: int | None = None
+    actual: Decimal | None = None
+    id: int = field(init=False)

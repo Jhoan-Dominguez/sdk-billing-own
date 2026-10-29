@@ -8,6 +8,7 @@ administrador salen de los métodos de conteo (`count_by_owner`, `usage_by_owner
 
 from collections.abc import Iterable
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Protocol, Self
 
 from billing.domain.models import (
@@ -20,6 +21,7 @@ from billing.domain.models import (
     MailboxConnection,
     Purchase,
     SecurityConfirmation,
+    SpendForecast,
     User,
 )
 
@@ -45,6 +47,10 @@ class PurchaseRepository(Protocol):
     def by_owner(self, owner_id: str) -> list[Purchase]: ...
     def count_by_owner(self) -> dict[str, int]:
         """Número de compras de cada usuario."""
+        ...
+
+    def monthly_totals(self, *, owner_id: str | None) -> list[tuple[str, str, str, Decimal]]:
+        """(dueño, moneda, mes "AAAA-MM", total) de cada mes con compras (para entrenar)."""
         ...
 
     def monthly_count_by_source(self, since: date) -> list[tuple[str, str, int]]:
@@ -148,6 +154,15 @@ class ForecastModelRepository(Protocol):
         ...
 
 
+class SpendForecastRepository(Protocol):
+    def add(self, forecast: SpendForecast) -> None: ...
+    def delete(self, forecast: SpendForecast) -> None: ...
+    def get(self, owner_id: str, currency: str, period: date) -> SpendForecast | None: ...
+    def for_owner(self, owner_id: str) -> list[SpendForecast]:
+        """Por moneda y mes."""
+        ...
+
+
 class ForecastRunRepository(Protocol):
     def get(self, run_id: int) -> ForecastTrainingRun | None: ...
     def add(self, run: ForecastTrainingRun) -> None: ...
@@ -173,6 +188,7 @@ class UnitOfWork(Protocol):
     audit_log: AuditRepository
     forecast_models: ForecastModelRepository
     forecast_runs: ForecastRunRepository
+    forecasts: SpendForecastRepository
 
     def __enter__(self) -> Self: ...
     def __exit__(self, *exc) -> None: ...

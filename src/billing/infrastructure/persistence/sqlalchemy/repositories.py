@@ -1,8 +1,9 @@
 """Repositorios SQL: implementan billing.domain.ports.repositories."""
 
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Iterable
 from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy import case, delete, func, or_, select, update
 from sqlalchemy.orm import Session
@@ -17,6 +18,7 @@ from billing.domain.models import (
     MailboxConnection,
     Purchase,
     SecurityConfirmation,
+    SpendForecast,
     User,
 )
 
@@ -71,6 +73,15 @@ class SqlPurchaseRepository(_Repository):
 
     def count_by_owner(self) -> dict[str, int]:
         return dict(self.session.execute(select(Purchase.owner_id, func.count()).group_by(Purchase.owner_id)).all())
+
+    def monthly_totals(self, *, owner_id: str | None) -> list[tuple[str, str, str, Decimal]]:
+        query = select(Purchase.owner_id, Purchase.currency, Purchase.purchase_date, Purchase.total)
+        if owner_id is not None:
+            query = query.where(Purchase.owner_id == owner_id)
+        totals: dict[tuple[str, str, str], Decimal] = defaultdict(Decimal)
+        for owner, currency, day, total in self.session.execute(query):
+            totals[(owner, currency, f"{day:%Y-%m}")] += total
+        return [(*key, total) for key, total in sorted(totals.items())]
 
     def monthly_count_by_source(self, since: date) -> list[tuple[str, str, int]]:
         # Agrupar por mes en SQL depende del motor; se agrupa aquí (solo fecha y origen).
@@ -232,6 +243,24 @@ class SqlForecastModelRepository(_Repository):
             query = query.where(ForecastModel.scope == scope)
         if status is not None:
             query = query.where(ForecastModel.status == status)
+        return list(self.session.scalars(query))
+
+
+class SqlSpendForecastRepository(_Repository):
+    model = SpendForecast
+
+    def get(self, owner_id: str, currency: str, period: date) -> SpendForecast | None:
+        query = select(SpendForecast).where(
+            SpendForecast.owner_id == owner_id, SpendForecast.currency == currency, SpendForecast.period == period
+        )
+        return self.session.scalars(query).first()
+
+    def for_owner(self, owner_id: str) -> list[SpendForecast]:
+        query = (
+            select(SpendForecast)
+            .where(SpendForecast.owner_id == owner_id)
+            .order_by(SpendForecast.currency, SpendForecast.period)
+        )
         return list(self.session.scalars(query))
 
 

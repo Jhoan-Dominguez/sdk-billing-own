@@ -13,6 +13,7 @@ from billing.domain.models import (
     Purchase,
     PurchaseItem,
     SecurityConfirmation,
+    SpendForecast,
     User,
 )
 from billing.infrastructure.persistence.sqlalchemy import tables
@@ -49,4 +50,5 @@ def start_mappers() -> None:
     mapper_registry.map_imperatively(AuditEntry, tables.admin_audit_log)
     mapper_registry.map_imperatively(ForecastTrainingRun, tables.ml_training_runs)
     mapper_registry.map_imperatively(ForecastModel, tables.ml_models)
+    mapper_registry.map_imperatively(SpendForecast, tables.spend_forecasts)
     _mapped = True

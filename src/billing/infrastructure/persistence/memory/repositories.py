@@ -1,8 +1,9 @@
 """Repositorios en memoria: implementan billing.domain.ports.repositories."""
 
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Iterable
 from datetime import date, datetime
+from decimal import Decimal
 
 from billing.infrastructure.persistence.memory.store import State
 
@@ -39,7 +40,7 @@ class MemoryUserRepository(_Repository):
     def delete(self, user) -> None:
         super().delete(user)
         # ON DELETE CASCADE / SET NULL del esquema SQL.
-        for name in ("categories", "confirmations", "mailboxes", "forecast_runs", "forecast_models"):
+        for name in ("categories", "confirmations", "mailboxes", "forecast_runs", "forecast_models", "forecasts"):
             rows = self.state.rows[name]
             for key in [
                 k for k, row in rows.items() if getattr(row, "owner_id", getattr(row, "user_id", None)) == user.id
@@ -48,10 +49,13 @@ class MemoryUserRepository(_Repository):
         for setting in self.state.rows["agent_settings"].values():
             if setting.updated_by == user.id:
                 setting.updated_by = None
-        runs = self.state.rows["forecast_runs"]
-        for model in self.state.rows["forecast_models"].values():
+        runs, models = self.state.rows["forecast_runs"], self.state.rows["forecast_models"]
+        for model in models.values():
             if model.run_id is not None and model.run_id not in runs:
                 model.run_id = None
+        for forecast in self.state.rows["forecasts"].values():
+            if forecast.user_model_id is not None and forecast.user_model_id not in models:
+                forecast.user_model_id = None
 
     def list(self, role: str | None = None):
         users = [u for u in self._all() if role is None or u.role == role]
@@ -84,6 +88,12 @@ class MemoryPurchaseRepository(_Repository):
 
     def count_by_owner(self) -> dict[str, int]:
         return dict(Counter(p.owner_id for p in self._all()))
+
+    def monthly_totals(self, *, owner_id: str | None) -> list[tuple[str, str, str, Decimal]]:
+        totals: dict[tuple[str, str, str], Decimal] = defaultdict(Decimal)
+        for p in self._visible(owner_id):
+            totals[(p.owner_id, p.currency, f"{p.purchase_date:%Y-%m}")] += p.total
+        return [(*key, total) for key, total in sorted(totals.items())]
 
     def monthly_count_by_source(self, since: date) -> list[tuple[str, str, int]]:
         counts = Counter((f"{p.created_at:%Y-%m}", p.source) for p in self._all() if p.created_at.date() >= since)
@@ -226,3 +236,15 @@ class MemoryForecastRunRepository(_Repository):
 
     def list(self, *, limit: int = 200):
         return sorted(self._all(), key=lambda r: r.id, reverse=True)[:limit]
+
+
+class MemorySpendForecastRepository(_Repository):
+    collection = "forecasts"
+
+    def get(self, owner_id: str, currency: str, period: date):
+        return next(
+            (f for f in self._all() if (f.owner_id, f.currency, f.period) == (owner_id, currency, period)), None
+        )
+
+    def for_owner(self, owner_id: str):
+        return sorted((f for f in self._all() if f.owner_id == owner_id), key=lambda f: (f.currency, f.period))

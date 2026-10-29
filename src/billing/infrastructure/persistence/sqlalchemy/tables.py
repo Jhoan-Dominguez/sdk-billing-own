@@ -7,6 +7,7 @@ from sqlalchemy import (
     Column,
     Date,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -220,6 +221,7 @@ ml_models = Table(
     Column("id", Integer, primary_key=True),
     Column("scope", String(20), nullable=False, index=True),
     Column("owner_id", String(64), ForeignKey("users.id", ondelete="CASCADE"), index=True),
+    Column("currency", String(3)),
     Column("algorithm", String(50), nullable=False),
     Column("version", String(50), nullable=False),
     Column("run_id", Integer, ForeignKey("ml_training_runs.id", ondelete="SET NULL")),
@@ -232,4 +234,30 @@ ml_models = Table(
     Column("train_to", Date),
     Column("n_samples", Integer),
     Column("created_at", DateTime, nullable=False, server_default=func.now()),
+)
+
+spend_forecasts = Table(
+    "spend_forecasts",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("owner_id", String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+    Column("currency", String(3), nullable=False),
+    Column("period", Date, nullable=False),
+    Column("horizon", Integer, nullable=False),
+    Column("p10", money, nullable=False),
+    Column("p50", money, nullable=False),
+    Column("p90", money, nullable=False),
+    Column("user_weight", Float, nullable=False),
+    Column("global_model_id", Integer, ForeignKey("ml_models.id", ondelete="SET NULL")),
+    Column("user_model_id", Integer, ForeignKey("ml_models.id", ondelete="SET NULL")),
+    Column("actual", money),
+    Column("predicted_at", DateTime, nullable=False),
+)
+# Una predicción por cliente, moneda y mes (se reescribe hasta que el mes empieza).
+Index(
+    "uq_spend_forecasts_owner_currency_period",
+    spend_forecasts.c.owner_id,
+    spend_forecasts.c.currency,
+    spend_forecasts.c.period,
+    unique=True,
 )
