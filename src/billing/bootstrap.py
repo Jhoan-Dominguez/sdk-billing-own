@@ -15,7 +15,7 @@ from billing.application.agents.base import Agent
 from billing.application.agents.registry import AGENTS, BANK_NOTIFICATION, INVOICE
 from billing.domain.ports.crypto import SecretCipher
 from billing.domain.ports.extraction import BankNotificationParser, InvoiceExtractor
-from billing.domain.ports.identity import AccountActions, AccountAdmin, Reauthenticator
+from billing.domain.ports.identity import AccountActions, AccountAdmin, Reauthenticator, UserDirectory
 from billing.domain.ports.mail import MailboxGateway, Mailer
 from billing.domain.ports.repositories import UnitOfWork
 from billing.domain.ports.storage import FileStorage
@@ -198,6 +198,23 @@ def account_admin(user_id: str) -> AccountAdmin | None:
     return KeycloakAccountAdmin(_service_token(), settings.KEYCLOAK_INTERNAL_URL, settings.KEYCLOAK_REALM, user_id)
 
 
+def user_directory() -> UserDirectory | None:
+    """Todas las cuentas del proveedor de identidad: solo para páginas con `viewer.manages_users`."""
+    if not identity_admin_configured():
+        return None
+    from billing.infrastructure.identity.keycloak import KeycloakUserDirectory
+
+    # Tras los correos de acciones (verificar, fijar contraseña) Keycloak ofrece volver a
+    # una URI registrada del cliente: /configuracion lo está.
+    return KeycloakUserDirectory(
+        _service_token(),
+        settings.KEYCLOAK_INTERNAL_URL,
+        settings.KEYCLOAK_REALM,
+        settings.KEYCLOAK_CLIENT_ID,
+        f"{settings.APP_PUBLIC_URL}/configuracion",
+    )
+
+
 @cache
 def account_actions() -> AccountActions:
     from billing.infrastructure.identity.keycloak import KeycloakActions
@@ -219,3 +236,31 @@ def reauthenticator() -> Reauthenticator:
         settings.KEYCLOAK_CLIENT_SECRET,
         settings.APP_PUBLIC_URL,
     )
+
+
+# --- Estado de los servicios ----------------------------------------------------
+
+
+def service_checks() -> dict[str, Callable[[], str | None]]:
+    """Comprobaciones para el estado del sistema: cada una lanza si el servicio falla y
+    puede devolver un detalle. No incluye IMAP: cada buzón informa su propio error."""
+
+    def database() -> str:
+        with unit_of_work() as uow:
+            uow.users.list()
+        return persistence().name
+
+    def identity() -> str:
+        if not identity_admin_configured():
+            raise ConfigurationError("Falta KEYCLOAK_ADMIN_API_SECRET.")
+        _service_token().get()
+        return settings.KEYCLOAK_INTERNAL_URL
+
+    def mail() -> str:
+        sender = mailer()
+        if check := getattr(sender, "check", None):
+            check()
+            return f"{settings.SMTP_HOST}:{settings.SMTP_PORT}"
+        return f"{settings.MAILER_BACKEND} (sin servidor)"
+
+    return {"Base de datos": database, "Proveedor de identidad": identity, "Correo saliente": mail}

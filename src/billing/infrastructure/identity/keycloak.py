@@ -8,6 +8,9 @@
   `billing-admin-api` (roles view-users/manage-users del realm). Puede tocar a
   cualquier usuario del realm, así que bootstrap solo la crea para el usuario
   autenticado.
+- KeycloakUserDirectory / KeycloakManagedAccount: lo mismo para los administradores
+  (bloquear, cambiar rol, invitar...). bootstrap.user_directory() solo se usa en las
+  páginas que exigen `viewer.manages_users`.
 - KeycloakReauthenticator: reautenticación para acciones sensibles
   (`prompt=login`, `max_age=0`): Keycloak vuelve a pedir contraseña y, si el usuario
   lo tiene, el código 2FA. La app canjea el `code` con el secreto del cliente y
@@ -15,6 +18,7 @@
   claim `amr` (mapper "amr" del cliente) dice si se usó el 2FA.
 """
 
+import contextlib
 import time
 from datetime import datetime
 from urllib.parse import urlencode
@@ -24,7 +28,7 @@ from joserfc import jwt
 from joserfc.errors import JoseError
 from joserfc.jwk import KeySet
 
-from billing.domain.ports.identity import IdentityError
+from billing.domain.ports.identity import IdentityError, IdentityNotFound, ManagedAccount
 
 
 def from_millis(ms: int | None) -> datetime | None:
@@ -79,6 +83,23 @@ class ServiceAccountToken:
         return self._token
 
 
+def admin_request(token: ServiceAccountToken, method: str, url: str, **kwargs) -> httpx.Response:
+    """Llamada a la API de administración; los errores se convierten en IdentityError."""
+    try:
+        response = httpx.request(method, url, headers={"Authorization": f"Bearer {token.get()}"}, timeout=10, **kwargs)
+    except httpx.HTTPError as e:
+        raise IdentityError(f"No se pudo contactar con Keycloak: {e}") from e
+    if response.status_code >= 400:
+        try:
+            body = response.json() if response.content else {}
+        except ValueError:
+            body = {}
+        detail = (body.get("errorMessage") or body.get("error") or "") if isinstance(body, dict) else ""
+        error = IdentityNotFound if response.status_code == 404 else IdentityError
+        raise error(f"Keycloak respondió {response.status_code}. {detail}".strip())
+    return response
+
+
 class KeycloakAccountAdmin:
     """AccountAdmin para un usuario concreto."""
 
@@ -87,20 +108,7 @@ class KeycloakAccountAdmin:
         self._user_url = f"{internal_url}/admin/realms/{realm}/users/{user_id}"
 
     def _request(self, method: str, path: str = "", **kwargs) -> httpx.Response:
-        try:
-            response = httpx.request(
-                method,
-                self._user_url + path,
-                headers={"Authorization": f"Bearer {self._token.get()}"},
-                timeout=10,
-                **kwargs,
-            )
-        except httpx.HTTPError as e:
-            raise IdentityError(f"No se pudo contactar con Keycloak: {e}") from e
-        if response.status_code >= 400:
-            detail = response.json().get("errorMessage", "") if response.content else ""
-            raise IdentityError(f"Keycloak respondió {response.status_code}. {detail}".strip())
-        return response
+        return admin_request(self._token, method, self._user_url + path, **kwargs)
 
     def _raw_user(self) -> dict:
         return self._request("GET").json()
@@ -169,6 +177,127 @@ class KeycloakAccountAdmin:
 
     def delete(self) -> None:
         self._request("DELETE")
+
+
+class KeycloakManagedAccount(KeycloakAccountAdmin):
+    """ManagedAccount: la cuenta de otro usuario vista por un administrador.
+
+    `redirect_uri` es adonde lleva el enlace del correo de acciones al terminar; tiene que
+    estar entre las URIs válidas del cliente en el realm.
+    """
+
+    def __init__(
+        self, token: ServiceAccountToken, internal_url: str, realm: str, user_id: str, client_id: str, redirect_uri: str
+    ) -> None:
+        super().__init__(token, internal_url, realm, user_id)
+        self._client_id = client_id
+        self._redirect_uri = redirect_uri
+
+    def delete(self) -> None:
+        # Si la cuenta ya no está en Keycloak (borrada desde su consola), el administrador
+        # solo tiene que limpiar los datos de la app.
+        with contextlib.suppress(IdentityNotFound):
+            super().delete()
+
+    def representation(self) -> dict:
+        user = self._raw_user()
+        roles = self._request("GET", "/role-mappings/realm/composite").json()
+        return {
+            "username": user.get("username"),
+            "email": user.get("email"),
+            "firstName": user.get("firstName", ""),
+            "lastName": user.get("lastName", ""),
+            "emailVerified": bool(user.get("emailVerified")),
+            "enabled": bool(user.get("enabled", True)),
+            "roles": sorted(r["name"] for r in roles),
+        }
+
+    def set_enabled(self, enabled: bool) -> None:
+        # Se reenvían username y email: la validación del perfil de usuario los exige.
+        current = self._raw_user()
+        self._request("PUT", json={"username": current["username"], "email": current.get("email"), "enabled": enabled})
+
+    def set_role(self, role: str, app_roles: tuple[str, ...]) -> None:
+        mapped = self._request("GET", "/role-mappings/realm").json()
+        stale = [r for r in mapped if r["name"] in app_roles and r["name"] != role]
+        if stale:
+            self._request("DELETE", "/role-mappings/realm", json=stale)
+        if role not in {r["name"] for r in mapped}:
+            available = self._request("GET", "/role-mappings/realm/available").json()
+            target = next((r for r in available if r["name"] == role), None)
+            if target is None:
+                raise IdentityError(f"El rol {role!r} no existe en el realm.")
+            self._request("POST", "/role-mappings/realm", json=[target])
+
+    def send_actions_email(self, actions: list[str], *, lifespan_seconds: int = 3 * 24 * 3600) -> None:
+        self._request(
+            "PUT",
+            "/execute-actions-email",
+            params={"client_id": self._client_id, "redirect_uri": self._redirect_uri, "lifespan": lifespan_seconds},
+            json=actions,
+        )
+
+
+class KeycloakUserDirectory:
+    """UserDirectory: todas las cuentas del realm."""
+
+    PAGE = 500
+
+    def __init__(self, token: ServiceAccountToken, internal_url: str, realm: str, client_id: str, redirect_uri: str):
+        self._token = token
+        self._internal_url = internal_url
+        self._realm = realm
+        self._users_url = f"{internal_url}/admin/realms/{realm}/users"
+        self._client_id = client_id
+        self._redirect_uri = redirect_uri
+
+    def account(self, user_id: str) -> ManagedAccount:
+        return KeycloakManagedAccount(
+            self._token, self._internal_url, self._realm, user_id, self._client_id, self._redirect_uri
+        )
+
+    def statuses(self) -> dict[str, dict]:
+        result: dict[str, dict] = {}
+        first = 0
+        while True:
+            params = {"briefRepresentation": "false", "first": first, "max": self.PAGE}
+            page = admin_request(self._token, "GET", self._users_url, params=params).json()
+            for user in page:
+                result[user["id"]] = {
+                    "enabled": bool(user.get("enabled", True)),
+                    "email_verified": bool(user.get("emailVerified")),
+                    "otp": bool(user.get("totp")),
+                    "created": from_millis(user.get("createdTimestamp")),
+                }
+            if len(page) < self.PAGE:
+                return result
+            first += self.PAGE
+
+    def find_by_email(self, email: str) -> str | None:
+        params = {"email": email, "exact": "true"}
+        users = admin_request(self._token, "GET", self._users_url, params=params).json()
+        return users[0]["id"] if users else None
+
+    def create(self, *, email: str, first_name: str, last_name: str, role: str, email_verified: bool = False) -> str:
+        response = admin_request(
+            self._token,
+            "POST",
+            self._users_url,
+            json={
+                "username": email,
+                "email": email,
+                "firstName": first_name,
+                "lastName": last_name,
+                "enabled": True,
+                "emailVerified": email_verified,
+            },
+        )
+        # Keycloak devuelve la URL del usuario creado en Location (…/users/<id>).
+        user_id = response.headers.get("Location", "").rstrip("/").rpartition("/")[2]
+        if not user_id:
+            raise IdentityError("Keycloak no devolvió el id de la cuenta creada.")
+        self.account(user_id).set_role(role, (role,))
+        return user_id
 
 
 class KeycloakReauthenticator:

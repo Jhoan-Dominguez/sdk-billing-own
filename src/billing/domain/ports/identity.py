@@ -7,10 +7,15 @@ from typing import Protocol
 # (la app nunca ve contraseñas ni secretos de 2FA).
 ACTION_UPDATE_PASSWORD = "UPDATE_PASSWORD"
 ACTION_CONFIGURE_TOTP = "CONFIGURE_TOTP"
+ACTION_VERIFY_EMAIL = "VERIFY_EMAIL"
 
 
 class IdentityError(RuntimeError):
     pass
+
+
+class IdentityNotFound(IdentityError):
+    """La cuenta no existe en el proveedor de identidad."""
 
 
 class AccountAdmin(Protocol):
@@ -38,6 +43,40 @@ class AccountAdmin(Protocol):
 
     def logout_everywhere(self) -> None: ...
     def delete(self) -> None: ...
+
+
+class ManagedAccount(AccountAdmin, Protocol):
+    """Lo que un administrador puede hacer sobre la cuenta de OTRO usuario."""
+
+    def representation(self) -> dict:
+        """Ficha exportable: username, email, firstName, lastName, emailVerified, enabled, roles."""
+        ...
+
+    def set_enabled(self, enabled: bool) -> None: ...
+    def set_role(self, role: str, app_roles: tuple[str, ...]) -> None:
+        """Deja `role` como único rol de la app (de `app_roles`) asignado directamente."""
+        ...
+
+    def send_actions_email(self, actions: list[str], *, lifespan_seconds: int = 3 * 24 * 3600) -> None:
+        """Envía el correo del proveedor para completar `actions` (cambiar contraseña, verificar...)."""
+        ...
+
+
+class UserDirectory(Protocol):
+    """Todas las cuentas del proveedor de identidad (solo para administradores)."""
+
+    def account(self, user_id: str) -> ManagedAccount: ...
+    def statuses(self) -> dict[str, dict]:
+        """Por id: enabled, email_verified, otp (bool), created (datetime | None)."""
+        ...
+
+    def find_by_email(self, email: str) -> str | None:
+        """Id de la cuenta con ese correo, o None."""
+        ...
+
+    def create(self, *, email: str, first_name: str, last_name: str, role: str, email_verified: bool = False) -> str:
+        """Crea la cuenta (sin contraseña) con el rol indicado y devuelve su id."""
+        ...
 
 
 class AccountActions(Protocol):

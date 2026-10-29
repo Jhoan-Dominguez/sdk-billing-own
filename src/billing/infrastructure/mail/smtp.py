@@ -40,20 +40,29 @@ class SmtpMailer:
         msg.add_alternative(render_html(email), subtype="html")
         return msg
 
+    def _connect(self) -> smtplib.SMTP:
+        if self.use_ssl:
+            server = smtplib.SMTP_SSL(self.host, self.port, timeout=self.timeout, context=ssl.create_default_context())
+        else:
+            server = smtplib.SMTP(self.host, self.port, timeout=self.timeout)
+        if self.starttls:
+            server.starttls(context=ssl.create_default_context())
+        if self.user:
+            server.login(self.user, self.password)
+        return server
+
     def send(self, email: EmailContent) -> None:
         msg = self.build(email)
         try:
-            if self.use_ssl:
-                server = smtplib.SMTP_SSL(
-                    self.host, self.port, timeout=self.timeout, context=ssl.create_default_context()
-                )
-            else:
-                server = smtplib.SMTP(self.host, self.port, timeout=self.timeout)
-            with server:
-                if self.starttls:
-                    server.starttls(context=ssl.create_default_context())
-                if self.user:
-                    server.login(self.user, self.password)
+            with self._connect() as server:
                 server.send_message(msg)
         except (OSError, smtplib.SMTPException) as e:
             raise MailError(f"No se pudo enviar el correo ({self.host}:{self.port}): {e}") from e
+
+    def check(self) -> None:
+        """Conecta (y se autentica) sin enviar nada; lanza MailError si falla."""
+        try:
+            with self._connect() as server:
+                server.noop()
+        except (OSError, smtplib.SMTPException) as e:
+            raise MailError(f"Sin conexión con {self.host}:{self.port}: {e}") from e
