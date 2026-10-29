@@ -29,7 +29,17 @@ anthropic = ["anthropic>=1.0"]
 openai = ["openai>=2.0"]
 gemini = ["google-genai>=1.20"]
 llm = ["anthropic>=1.0", "openai>=2.0", "google-genai>=1.20"]
-dev = ["anthropic>=1.0", "openai>=2.0", "google-genai>=1.20", "pytest>=8", "pre-commit>=4", "ruff>=0.17"]
+# Modelo general de predicción del gasto (infrastructure/ml); sin él se usa la referencia ingenua.
+ml = ["lightgbm>=4.5"]
+dev = [
+    "anthropic>=1.0",
+    "openai>=2.0",
+    "google-genai>=1.20",
+    "lightgbm>=4.5",
+    "pytest>=8",
+    "pre-commit>=4",
+    "ruff>=0.17",
+]
 
 [project.scripts]
 billing = "billing.__main__:main"

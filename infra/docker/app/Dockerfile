@@ -10,11 +10,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# LightGBM (modelo general de predicción) necesita OpenMP.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Primero solo lo necesario para instalar dependencias (capa reutilizable en caché).
 COPY pyproject.toml README.md ./
 COPY src ./src
-# Con los SDKs de todos los proveedores LLM (extra "llm"); quita los que no uses.
-RUN pip install ".[llm]"
+# Con los SDKs de todos los proveedores LLM (extra "llm", quita los que no uses) y LightGBM
+# (extra "ml"; sin él la predicción usa la referencia ingenua).
+RUN pip install ".[llm,ml]"
 
 RUN useradd --create-home --uid 1000 app \
     && mkdir -p /app/data/uploads /app/.streamlit \

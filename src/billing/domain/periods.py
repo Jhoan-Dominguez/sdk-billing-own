@@ -22,3 +22,10 @@ def last_months(n: int, today: date | None = None) -> list[str]:
         keys.append(f"{y:04d}-{m:02d}")
         y, m = (y - 1, 12) if m == 1 else (y, m - 1)
     return keys[::-1]
+
+
+def add_months(month: str, n: int) -> str:
+    """'2026-11' + 2 -> '2027-01' (n puede ser negativo)."""
+    y, m = int(month[:4]), int(month[5:7])
+    index = y * 12 + (m - 1) + n
+    return f"{index // 12:04d}-{index % 12 + 1:02d}"
