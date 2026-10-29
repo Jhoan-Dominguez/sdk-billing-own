@@ -8,3 +8,7 @@ class UnsupportedFile(ValueError):
 
 class NotFound(LookupError):
     """El recurso no existe o no es visible para quien lo pide."""
+
+
+class PermissionDenied(PermissionError):
+    """Quien lo pide no puede hacerlo; el mensaje se muestra tal cual."""

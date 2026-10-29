@@ -147,8 +147,12 @@ def delete_account(uow: UnitOfWork, storage: FileStorage, account: AccountAdmin,
     for draft in imports.drafts(uow, owner_id=user.id):
         imports.discard_draft(uow, storage, draft)
     remove_avatar(uow, storage, user)
+    # Sus modelos de predicción caen en cascada; sus archivos (si los hay) se borran aquí.
+    artifacts = [m.artifact_key for m in uow.forecast_models.for_owner(user.id) if m.artifact_key]
     for mailbox in uow.mailboxes.for_owner(user.id):
         uow.mailboxes.delete(mailbox)
     uow.confirmations.delete_for_user(user.id)
     uow.users.delete(user)
     uow.commit()
+    for key in artifacts:
+        storage.delete(key)

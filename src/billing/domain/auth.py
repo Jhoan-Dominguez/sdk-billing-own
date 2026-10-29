@@ -26,6 +26,14 @@ PAGES_BY_ROLE: dict[str, tuple[str, ...]] = {
 # El resto solo ve lo que es suyo.
 SEES_ALL_ROLES = frozenset({ADMIN})
 
+# Roles que administran las cuentas de los demás (bloquear, eliminar, exportar...),
+# ven el estado del sistema, los modelos de predicción y el modelo de datos. Nunca ven
+# el contenido de las compras: solo cifras de uso.
+MANAGES_USERS_ROLES = frozenset({ADMIN})
+
+# Roles que llevan sus propias compras (importar, buzones bancarios, preferencias).
+TRACKS_PURCHASES_ROLES = frozenset({CUSTOMER})
+
 # Roles que gestionan las categorías generales (las de todos los usuarios).
 MANAGES_GLOBAL_CATEGORIES_ROLES = frozenset({ADMIN})
 
@@ -62,6 +70,14 @@ class Viewer:
     def can_modify(self, owner_id: str) -> bool:
         # Ver datos ajenos no implica poder cambiarlos: solo el dueño edita o borra.
         return owner_id == self.user_id
+
+    @property
+    def manages_users(self) -> bool:
+        return self.role in MANAGES_USERS_ROLES
+
+    @property
+    def tracks_purchases(self) -> bool:
+        return self.role in TRACKS_PURCHASES_ROLES
 
     @property
     def manages_global_categories(self) -> bool:
