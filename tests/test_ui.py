@@ -11,6 +11,7 @@ from billing.application import purchases as purchase_service
 from billing.domain.auth import ADMIN, CUSTOMER
 from billing.domain.models import User
 from billing.infrastructure.extraction.extractors import RegexExtractor
+from billing.infrastructure.ml.baseline import BaselineGlobalForecaster
 from billing.infrastructure.persistence.memory.backend import MemoryBackend
 from tests.conftest import ADMIN_ID, ADMIN_VIEWER, ANA_ID, ANA_VIEWER, BETO_ID, BETO_VIEWER, make_pdf
 
@@ -75,6 +76,7 @@ def admin_app(app_backend, monkeypatch, directory):
 
     monkeypatch.setattr(bootstrap, "user_directory", lambda: directory)
     monkeypatch.setattr(bootstrap, "service_checks", lambda: {"Base de datos": lambda: "memory"})
+    monkeypatch.setattr(bootstrap, "global_forecaster", BaselineGlobalForecaster)
     admin_component.identity_statuses.clear()
     return app_backend
 
@@ -142,3 +144,44 @@ def test_import_page_hides_other_users_drafts(app_backend, storage):
     at = run_page("imports", BETO_VIEWER)
     text = page_text(at) + str([s.options for s in at.selectbox])
     assert "beto.pdf" in text and "ana.pdf" not in text
+
+
+def test_summary_shows_projection_after_training(admin_app, storage):
+    from billing.application.forecasting import training
+    from billing.infrastructure.ml.baseline import BaselineGlobalForecaster
+    from billing.infrastructure.ml.ets import DampedTrendForecaster
+    from tests.test_forecasting import add_history
+
+    first = add_months_from_today(-6)
+    with admin_app.unit_of_work() as uow:
+        add_history(uow, ANA_ID, 300, months=6, first=first)
+    training.train_all(
+        admin_app.unit_of_work,
+        global_forecaster=BaselineGlobalForecaster(),
+        series_forecaster=DampedTrendForecaster(),
+        storage=storage,
+        retrain_global=True,
+    )
+    at = run_page("summary", ANA_VIEWER)
+    assert not at.exception, at.exception
+    labels = [m.label for m in at.metric]
+    assert "Cierre estimado del mes" in labels and any(label.startswith("Previsto para") for label in labels)
+    assert any(s.value == "Proyección (USD)" for s in at.subheader)
+
+
+def test_ml_models_train_button(admin_app):
+    from tests.test_forecasting import add_history
+
+    with admin_app.unit_of_work() as uow:
+        add_history(uow, ANA_ID, 300, months=6, first=add_months_from_today(-6))
+    at = run_page("ml_models", ADMIN_VIEWER)
+    at.button[0].click().run()
+    assert not at.exception, at.exception
+    table = at.dataframe[0].value
+    assert {"General", "Por cliente"} <= set(table["Alcance"])
+
+
+def add_months_from_today(n: int) -> str:
+    from billing.domain.periods import add_months, month_key
+
+    return add_months(month_key(date.today()), n)
