@@ -11,12 +11,26 @@ from billing import bootstrap
 from billing.application.forecasting import models as model_service
 from billing.domain import forecasting
 from billing.presentation.streamlit.components.admin import require_manager, when
+from billing.presentation.streamlit.components.layout import flash
 
 viewer = require_manager()
-st.title("Modelos de predicción")
+head, action = st.columns([4, 1], vertical_alignment="bottom")
+head.title("Modelos de predicción")
+if action.button("Entrenar ahora", icon=":material/model_training:", width="stretch"):
+    with st.spinner("Entrenando modelos y actualizando predicciones…"):
+        report = model_service.train_now(
+            bootstrap.uow_factory(),
+            viewer,
+            global_forecaster=bootstrap.global_forecaster(),
+            series_forecaster=bootstrap.series_forecaster(),
+            storage=bootstrap.file_storage(),
+        )
+    flash(report.summary().capitalize())
+    st.rerun()
 st.caption(
     "Predicción del gasto mensual por cliente: un modelo **general** que aprende de todos los clientes (series "
-    "normalizadas, sin importes) y uno **por cliente** que lo personaliza. Las métricas salen del backtest."
+    "normalizadas, sin importes) y uno **por cliente y moneda** que lo personaliza. El worker reentrena cada hora a "
+    "los clientes con datos nuevos y a diario el general. Las métricas salen del backtest."
 )
 
 with bootstrap.unit_of_work() as uow:
@@ -51,7 +65,8 @@ k4.metric("Entrenamientos fallidos (30 días)", len(recent_failures))
 
 if not data.models and not data.runs:
     st.info(
-        "Todavía no hay modelos entrenados. Aparecerán aquí cuando el worker ejecute el primer entrenamiento.",
+        "Todavía no hay modelos entrenados. Aparecerán cuando el worker ejecute el primer entrenamiento "
+        "(o pulsa «Entrenar ahora»).",
         icon=":material/model_training:",
     )
 
@@ -85,6 +100,7 @@ with models_tab:
                 "Versión": m.version,
                 "Alcance": forecasting.SCOPE_LABELS.get(m.scope, m.scope),
                 "Cliente": data.owner_label(m),
+                "Moneda": m.currency or "—",
                 "Algoritmo": m.algorithm,
                 "Estado": forecasting.MODEL_STATUS_LABELS.get(m.status, m.status),
                 "Acierto": forecasting.accuracy_pct(m.metrics),
@@ -105,6 +121,7 @@ with models_tab:
             "Versión",
             "Alcance",
             "Cliente",
+            "Moneda",
             "Algoritmo",
             "Estado",
             "Acierto",
@@ -139,7 +156,10 @@ with models_tab:
     if selection.selection.rows:
         model = next(m for m in shown if m.id == df.iloc[selection.selection.rows[0]]["id"])
         st.divider()
-        st.subheader(f"{forecasting.SCOPE_LABELS.get(model.scope, model.scope)} · {data.owner_label(model)}")
+        st.subheader(
+            f"{forecasting.SCOPE_LABELS.get(model.scope, model.scope)} · {data.owner_label(model)}"
+            + (f" · {model.currency}" if model.currency else "")
+        )
         st.caption(
             f"Versión **{model.version}** · {model.algorithm} · "
             f"{forecasting.MODEL_STATUS_LABELS.get(model.status, model.status)} · entrenado {when(model.created_at)}"
@@ -222,6 +242,7 @@ with runs_tab:
                 "Duración (s)": (r.finished_at - r.created_at).total_seconds() if r.finished_at else None,
                 "Alcance": forecasting.SCOPE_LABELS.get(r.scope, r.scope),
                 "Cliente": data.owner_label(r),
+                "Moneda": data.run_currency(r) or "—",
                 "Algoritmo": r.algorithm,
                 "Estado": forecasting.RUN_STATUS_LABELS.get(r.status, r.status),
                 "Muestras": r.n_samples,
@@ -236,6 +257,7 @@ with runs_tab:
             "Duración (s)",
             "Alcance",
             "Cliente",
+            "Moneda",
             "Algoritmo",
             "Estado",
             "Muestras",

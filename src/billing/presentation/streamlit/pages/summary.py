@@ -11,6 +11,7 @@ from billing.application import purchases as purchase_service
 from billing.application import users as user_service
 from billing.application.reports import totals_by
 from billing.domain.periods import last_months, month_bounds, month_key
+from billing.presentation.streamlit.components import forecast
 from billing.presentation.streamlit.components.formatting import money, month_label, to_float
 from billing.presentation.streamlit.components.layout import page_header
 from billing.presentation.streamlit.components.profile import current_user
@@ -91,6 +92,11 @@ cards[-1].metric(
     border=True,
     height="stretch",
 )
+
+# --- Proyección (solo en el mes en curso) ---------------------------------------
+
+if month == month_key(date.today()):
+    forecast.render(owner, {m: {c: float(v) for c, v in t.items()} for m, t in by_month.items()}, preferred)
 
 # --- Gráficos: cuadrícula 2 × 2 de barras del mismo tamaño -------------------
 
