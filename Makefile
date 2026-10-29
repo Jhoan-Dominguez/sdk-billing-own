@@ -6,7 +6,7 @@ PYTHON  ?= .venv/bin/python
 SERVICE ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help env build up down restart logs ps seed seed-reset keycloak-reimport bank-samples mail \
+.PHONY: help env build up down restart logs ps seed seed-reset keycloak-reimport bank-samples mail train \
         install secrets dev worker sync-once migrate test lint format tf-validate
 
 help: ## Muestra esta ayuda
@@ -73,6 +73,9 @@ worker: ## Ejecuta en local el worker que sincroniza los buzones IMAP
 
 sync-once: ## Una sola sincronización de todos los buzones (en el contenedor del worker)
 	$(COMPOSE) exec worker python -m billing.worker --once
+
+train: ## Entrena ya los modelos de predicción, incluido el general (en el contenedor del worker)
+	$(COMPOSE) exec worker python -m billing.worker --train
 
 migrate: ## Aplica las migraciones pendientes a la base de datos
 	.venv/bin/alembic upgrade head

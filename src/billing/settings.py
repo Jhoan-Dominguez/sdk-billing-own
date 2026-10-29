@@ -98,4 +98,13 @@ MAIL_SYNC_INTERVAL = int(env("BILLING_MAIL_SYNC_INTERVAL") or "120")
 # Correos que se leen como máximo por buzón en cada sincronización.
 MAIL_SYNC_BATCH = int(env("BILLING_MAIL_SYNC_BATCH") or "50")
 
+# --- Predicción del gasto ----------------------------------------------------------
+
+# Algoritmo del modelo general: lightgbm (extra "ml") o baseline (referencia ingenua).
+FORECAST_ALGORITHM = env("BILLING_FORECAST_ALGORITHM", "lightgbm")
+# Cada cuántos segundos revisa el worker qué clientes cambiaron (reentrena solo esos).
+FORECAST_INTERVAL = int(env("BILLING_FORECAST_INTERVAL") or "3600")
+# Cada cuántos segundos se reentrena el modelo general.
+FORECAST_GLOBAL_INTERVAL = int(env("BILLING_FORECAST_GLOBAL_INTERVAL") or "86400")
+
 DEFAULT_CURRENCY = env("BILLING_CURRENCY", "USD")

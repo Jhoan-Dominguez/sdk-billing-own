@@ -6,6 +6,7 @@ infrastructure/<servicio>/: para integrar otro motor de base de datos, proveedor
 servidor de correo o almacenamiento se implementa el puerto y se registra allí.
 """
 
+import logging
 from collections.abc import Callable
 from functools import cache
 
@@ -15,6 +16,7 @@ from billing.application.agents.base import Agent
 from billing.application.agents.registry import AGENTS, BANK_NOTIFICATION, INVOICE
 from billing.domain.ports.crypto import SecretCipher
 from billing.domain.ports.extraction import BankNotificationParser, InvoiceExtractor
+from billing.domain.ports.forecasting import ForecastingError, GlobalForecaster, SeriesForecaster
 from billing.domain.ports.identity import AccountActions, AccountAdmin, Reauthenticator, UserDirectory
 from billing.domain.ports.mail import MailboxGateway, Mailer
 from billing.domain.ports.repositories import UnitOfWork
@@ -130,6 +132,28 @@ def bank_parser(*, uploaded: bool = False) -> BankNotificationParser:
     from billing.infrastructure.extraction.bank import LLMBankParser
 
     return LLMBankParser(lambda: agent(BANK_NOTIFICATION), require_bank_sender=uploaded)
+
+
+# --- Predicción del gasto -------------------------------------------------------
+
+
+@cache
+def global_forecaster() -> GlobalForecaster:
+    """Algoritmo del modelo general (BILLING_FORECAST_ALGORITHM); sin LightGBM, la referencia."""
+    from billing.infrastructure.ml import registry
+
+    try:
+        return registry.create_global(settings.FORECAST_ALGORITHM)
+    except ForecastingError as e:
+        logging.getLogger("billing.forecasting").warning("%s Se usa la referencia ingenua.", e)
+        return registry.create_global("baseline")
+
+
+@cache
+def series_forecaster() -> SeriesForecaster:
+    from billing.infrastructure.ml import registry
+
+    return registry.create_series("ets")
 
 
 # --- Correo -------------------------------------------------------------------

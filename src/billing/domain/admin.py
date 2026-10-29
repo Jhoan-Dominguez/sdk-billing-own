@@ -13,6 +13,7 @@ REMOVE_OTP = "remove_otp"
 RESEND_VERIFICATION = "resend_verification"
 INVITE_USER = "invite_user"
 PURGE_DRAFTS = "purge_drafts"
+TRAIN_MODELS = "train_models"
 
 ACTION_LABELS = {
     BLOCK_USER: "Bloquear cuenta",
@@ -27,6 +28,7 @@ ACTION_LABELS = {
     RESEND_VERIFICATION: "Reenviar verificación de correo",
     INVITE_USER: "Invitar usuario",
     PURGE_DRAFTS: "Purgar borradores antiguos",
+    TRAIN_MODELS: "Entrenar modelos de predicción",
 }
 
 # Exportación de un usuario (ZIP): manifest.json + data.json + archivos. `EXPORT_VERSION`
