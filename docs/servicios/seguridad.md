@@ -138,8 +138,9 @@ esas configuraciones el claim llega vacío. Por eso el realm incluye los flujos 
 ## Sesiones
 
 En Seguridad se listan las sesiones abiertas en Keycloak y se pueden cerrar todas
-(`logout_everywhere`). El login de Streamlit usa `prompt=login` porque `st.logout` solo borra
-la cookie de Streamlit, no la sesión SSO de Keycloak.
+(`logout_everywhere`). Cerrar sesión (`session.logout()`) borra la cookie de Streamlit, vacía
+`st.session_state` y termina la sesión SSO de Keycloak (`end_session_endpoint`). El login usa
+además `prompt=login`, así que siempre pide credenciales.
 
 ## Verificación realizada
 

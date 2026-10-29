@@ -16,6 +16,7 @@ from billing.domain.models import SecurityConfirmation
 from billing.domain.ports.identity import ACTION_CONFIGURE_TOTP, ACTION_UPDATE_PASSWORD, IdentityError
 from billing.domain.ports.mail import MailError
 from billing.presentation.streamlit.components.layout import flash
+from billing.presentation.streamlit.components.session import logout
 from billing.presentation.streamlit.components.settings.context import RETURN_PATH, SettingsContext
 
 ACTION_MESSAGES = {
@@ -296,7 +297,7 @@ def render(ctx: SettingsContext) -> None:
             except IdentityError as e:
                 st.error(str(e), icon=":material/error:")
             else:
-                st.logout()
+                logout()
 
 
 def execute(ctx: SettingsContext, uow, confirmation: SecurityConfirmation) -> None:
@@ -308,6 +309,6 @@ def execute(ctx: SettingsContext, uow, confirmation: SecurityConfirmation) -> No
         st.error(str(e), icon=":material/error:")
         return
     if outcome.logged_out:
-        st.logout()
+        logout()
     flash(outcome.message)
     st.rerun()

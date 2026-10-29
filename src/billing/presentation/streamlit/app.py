@@ -14,7 +14,13 @@ from billing.application.agents.registry import INVOICE
 from billing.domain import auth
 from billing.presentation.streamlit.components.layout import apply_styles, show_flash
 from billing.presentation.streamlit.components.profile import avatar, current_user
-from billing.presentation.streamlit.components.session import ensure_database, login_screen, user_claims
+from billing.presentation.streamlit.components.session import (
+    ensure_database,
+    login_screen,
+    logout,
+    reload_on_back_cache,
+    user_claims,
+)
 
 PAGES_DIR = Path(__file__).resolve().parent / "pages"
 
@@ -35,7 +41,7 @@ if viewer is None:
         f"uno de: {', '.join(auth.ROLES)}.",
         icon=":material/block:",
     )
-    st.button("Cerrar sesión", on_click=st.logout, icon=":material/logout:")
+    st.button("Cerrar sesión", on_click=logout, icon=":material/logout:")
     st.stop()
 
 ensure_database()
@@ -77,10 +83,11 @@ with st.sidebar:
     with pic:
         avatar(user, viewer.name)
     who.markdown(f"**{user.display_name if user else viewer.name}**  \n:green-badge[{auth.ROLE_LABELS[viewer.role]}]")
-    st.button("Cerrar sesión", on_click=st.logout, icon=":material/logout:", width="stretch")
+    st.button("Cerrar sesión", on_click=logout, icon=":material/logout:", width="stretch")
     st.divider()
     provider, model, _ = bootstrap.agent_choice(INVOICE)
     st.caption(f"Lector de facturas: **{provider}**" + (f" · `{model}`" if model else " · solo reglas locales"))
+    reload_on_back_cache()  # al final de la barra lateral: su bloque vacío no se nota
 
 show_flash()
 current_page.run()

@@ -5,13 +5,19 @@ Código en `src/billing/presentation/streamlit/`. Se arranca con `python -m bill
 
 ## Entrada (`app.py`)
 
-1. Sin sesión → `login_screen()` llama a `st.login("keycloak")` (redirección directa al tema
-   de login de Keycloak) y se detiene.
+1. Sin sesión → `login_screen()` vacía `st.session_state` y llama a `st.login("keycloak")`
+   (redirección directa al tema de login de Keycloak) y se detiene.
 2. Con sesión → `Viewer` desde los claims. Sin rol de la app → error y botón de cerrar sesión.
 3. `ensure_database()` aplica las migraciones una vez por proceso (`st.cache_resource`).
 4. Sincroniza el usuario una vez por sesión y guarda el `Viewer` en `st.session_state["viewer"]`.
 5. `st.navigation` con las páginas del rol; «Importar facturas (N)» muestra los borradores pendientes.
 6. Barra lateral: avatar, nombre, rol, cerrar sesión y el lector de facturas activo (proveedor y modelo).
+
+Cerrar sesión usa `session.logout()`, no `st.logout` directamente: además de borrar la cookie
+y terminar la sesión de Keycloak, vacía `st.session_state` (el `Viewer`, filtros...). Y
+`reload_on_back_cache()` recarga la página si el navegador la restaura desde su caché de
+atrás/adelante (bfcache): así, al volver atrás tras cerrar sesión no queda una interfaz vieja
+utilizable, sino que se valida otra vez la cookie y se redirige al login.
 
 ## Páginas (`pages/`)
 

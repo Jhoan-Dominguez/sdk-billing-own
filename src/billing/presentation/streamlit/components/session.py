@@ -42,12 +42,38 @@ def start_login() -> None:
     st.login("keycloak")
 
 
+def logout() -> None:
+    """Cierra la sesión: borra el estado de Streamlit (el `viewer`, filtros...) además de la cookie.
+
+    `st.logout` solo limpia `st.user`; si el estado siguiera vivo, una sesión de Streamlit
+    reutilizada (p. ej. al volver atrás en el navegador) conservaría los datos del usuario.
+    """
+    st.session_state.clear()
+    st.logout()
+
+
+# El navegador puede restaurar la página desde su caché de atrás/adelante (bfcache) con la
+# interfaz de antes de cerrar sesión. Al detectarlo se recarga, y app.py vuelve a validar la
+# sesión contra la cookie (que ya no existe) y redirige al login.
+_RELOAD_ON_BACK_CACHE = """<script>
+if (!window.__billingPageshow) {
+  window.__billingPageshow = true;
+  window.addEventListener("pageshow", (event) => { if (event.persisted) window.location.reload(); });
+}
+</script>"""
+
+
+def reload_on_back_cache() -> None:
+    st.html(_RELOAD_ON_BACK_CACHE, width="content", unsafe_allow_javascript=True)
+
+
 def login_screen() -> None:
     """Sin sesión: redirige a la pantalla de login (tema `billing` de Keycloak).
 
     El formulario de correo/contraseña, Google y "Crear cuenta" viven en Keycloak
     (infra/docker/keycloak/themes/billing): la app nunca recibe contraseñas.
     """
+    st.session_state.clear()  # nada de una sesión anterior sobrevive sin login
     if not auth_configured():
         st.error(
             "La autenticación no está configurada. Genera `.streamlit/secrets.toml` con "
